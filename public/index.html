@@ -77,6 +77,14 @@ header{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px s
   display:block;font-size:11.5px;font-weight:500;color:var(--muted);
   letter-spacing:.04em;line-height:1.4;
 }
+.brandmark{height:20px;width:auto;display:block;margin-bottom:3px}
+.gatelogo{height:34px;width:auto;display:block;margin:0 auto 18px}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]) .brandmark,
+  :root:not([data-theme="light"]) .gatelogo{filter:invert(1) brightness(1.2)}
+}
+:root[data-theme="dark"] .brandmark,
+:root[data-theme="dark"] .gatelogo{filter:invert(1) brightness(1.2)}
 .status{
   display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;
   padding:4px 10px;border-radius:100px;white-space:nowrap;line-height:1.4;
@@ -354,6 +362,7 @@ p.secsub .en{display:block;color:var(--faint)}
 .sealbox.bal.neg{background:var(--danger-soft)}
 .sealbox.bal.neg .k,.sealbox.bal.neg .v{color:var(--danger)}
 .log.grade{border-left:3px solid var(--accent)}
+.log.clean{border-left:3px solid var(--warn)}
 .calurl{display:flex;gap:8px;margin:6px 0 12px}
 .calurl input{flex:1;font-family:"IBM Plex Mono",monospace;font-size:12px;min-width:0}
 .steps{margin:0 0 10px;padding-left:1.4em;font-size:13px;line-height:1.7}
@@ -375,7 +384,8 @@ p.secsub .en{display:block;color:var(--faint)}
 <body>
 <div id="gate" class="gate hidden">
   <div class="gatecard">
-    <h1 class="gatetitle"><span class="ja">悠三堂 有機JAS記録</span><span class="en">Yusando Organic JAS Records</span></h1>
+    <img class="gatelogo" src="/logo-yusando.png" alt="YUSANDO Artisan Tea House">
+    <h1 class="gatetitle"><span class="ja">有機JAS記録</span><span class="en">Organic JAS Records</span></h1>
     <div id="gateSetup" class="hidden">
       <p class="secsub">はじめての起動です。チームで共有する<strong>合言葉</strong>を決めてください(6文字以上)。あとから使うメンバー全員に同じ合言葉を伝えます。<span class="en">First run. Choose a <strong>team passcode</strong> (6+ characters) and share it with the other members.</span></p>
     </div>
@@ -395,8 +405,8 @@ p.secsub .en{display:block;color:var(--faint)}
 <header>
   <div class="bar">
     <h1 class="brand">
-      <span class="ja">悠三堂 有機JAS記録</span>
-      <span class="sub en">Organic JAS Records</span>
+      <img class="brandmark" src="/logo-yusando.png" alt="YUSANDO Artisan Tea House">
+      <span class="sub"><span class="ja">有機JAS記録</span><span class="en">Organic JAS Records</span></span>
     </h1>
     <span class="member" id="memberBadge"></span>
     <span class="status" id="status"><span class="dot"></span><span id="statusText">…</span></span>
@@ -405,6 +415,7 @@ p.secsub .en{display:block;color:var(--faint)}
     <button class="tab" role="tab" aria-selected="true" data-view="entry"><span class="ja">栽培</span><span class="en">Field</span></button>
     <button class="tab" role="tab" aria-selected="false" data-view="proc"><span class="ja">加工</span><span class="en">Processing</span></button>
     <button class="tab" role="tab" aria-selected="false" data-view="grade"><span class="ja">格付</span><span class="en">Grading</span></button>
+    <button class="tab" role="tab" aria-selected="false" data-view="clean"><span class="ja">洗浄</span><span class="en">Cleaning</span></button>
     <button class="tab" role="tab" aria-selected="false" data-view="list"><span class="ja">記録</span><span class="en">Log</span></button>
     <button class="tab" role="tab" aria-selected="false" data-view="master"><span class="ja">台帳</span><span class="en">Registers</span></button>
   </div>
@@ -496,9 +507,21 @@ p.secsub .en{display:block;color:var(--faint)}
       </div>
 
       <div class="field hidden" id="pParentBox">
-        <span class="lb"><span class="ja">原料の荒茶ロット</span><span class="en">Aracha lot used</span></span>
+        <span class="lb"><span class="ja">原料のロット</span><span class="en">Input lot</span><span class="opt en">multiple ok / 複数可</span></span>
         <div class="chips" id="pParentChips"></div>
-        <p class="hint">仕上げに使う荒茶を選ぶと、圃場までの履歴がそのまま引き継がれます。<span class="en">Choosing the aracha carries its whole history, back to the field, into this record.</span></p>
+        <p class="hint">自社のロットを選ぶと、圃場までの履歴がそのまま引き継がれます。悠三堂で荒茶を作っていない場合は「自社ロットなし」を選び、仕入れ先と量を入れてください。<span class="en">Choosing one of our own lots carries its whole history, back to the field, into this record. For tea whose aracha was not made here, choose “No lot of ours” and enter the supplier and the weight.</span></p>
+        <div id="pExtBox" class="hidden">
+          <div class="qrow">
+            <span class="nm"><span class="ja">仕入れ先・原料の名前</span><span class="en">Supplier / material</span></span>
+            <input type="text" id="pExtName" placeholder="例: ○○製茶 荒茶 / supplier, lot">
+          </div>
+          <div class="qrow">
+            <span class="nm"><span class="ja">投入量</span><span class="en">Weight used</span></span>
+            <input type="number" id="pExtKg" inputmode="decimal" min="0" step="0.1" placeholder="0.0">
+            <span class="u">kg</span>
+          </div>
+          <p class="hint" id="pExtHint"></p>
+        </div>
       </div>
 
       <div class="field">
@@ -614,6 +637,55 @@ p.secsub .en{display:block;color:var(--faint)}
     </div>
   </section>
 
+  <!-- ============ CLEANING / CHANGEOVER ============ -->
+  <section id="view-clean" class="hidden">
+    <div class="card">
+      <p class="secsub">有機以外の茶と同じ設備を使うときは、切り替えの前に洗浄し、その記録を残します。委託先(東雲・東芳)での加工と、自社の設備の両方が対象です。加工の認証申請では、この記録が求められます。<span class="en">Where equipment is shared with non-organic tea, it is cleaned before the changeover and the cleaning is recorded. This covers both the entrusted factories and our own equipment, and the processing certification asks for these records.</span></p>
+      <div class="field">
+        <label class="lb" for="cdate"><span class="ja">日付</span><span class="en">Date</span></label>
+        <input type="date" id="cdate">
+      </div>
+
+      <div class="field">
+        <span class="lb"><span class="ja">場所(工場)</span><span class="en">Where</span></span>
+        <div class="chips" id="cFactoryChips"></div>
+      </div>
+
+      <div class="field">
+        <span class="lb"><span class="ja">設備・ライン</span><span class="en">Equipment or line</span><span class="opt en">multiple ok / 複数可</span></span>
+        <div class="chips" id="cEquipChips"></div>
+        <input type="text" id="cEquipOther" placeholder="その他の設備名 / other equipment">
+      </div>
+
+      <div class="field">
+        <span class="lb"><span class="ja">直前に流したもの</span><span class="en">What ran before this</span></span>
+        <div class="chips" id="cPrevChips"></div>
+        <p class="hint" id="cPrevHint"></p>
+      </div>
+
+      <div class="field">
+        <span class="lb"><span class="ja">洗浄・切替の方法</span><span class="en">How it was cleaned</span></span>
+        <div class="chips" id="cMethodChips"></div>
+        <textarea id="cMethod" placeholder="行ったことを書いてください / what was actually done"></textarea>
+      </div>
+
+      <div class="field">
+        <span class="lb"><span class="ja">確認した人</span><span class="en">Checked by</span><span class="opt en">multiple ok / 複数可</span></span>
+        <div class="chips" id="cWorkerChips"></div>
+      </div>
+
+      <div class="field">
+        <span class="lb"><span class="ja">確認の結果</span><span class="en">Result</span></span>
+        <div class="chips" id="cResultChips"></div>
+      </div>
+
+      <div class="field">
+        <label class="lb" for="cMemo"><span class="ja">メモ</span><span class="en">Notes</span><span class="opt en">optional / 任意</span></label>
+        <textarea id="cMemo" placeholder="気づいたこと / Anything you noticed"></textarea>
+      </div>
+    </div>
+  </section>
+
   <!-- ============ LOG ============ -->
   <section id="view-list" class="hidden">
     <div id="logList"></div>
@@ -720,9 +792,24 @@ p.secsub .en{display:block;color:var(--faint)}
         <button class="btn" id="exportCsv"><span class="ja">作業日誌をCSVで書き出す</span><span class="en">Export the field log as CSV</span></button>
         <button class="btn" id="exportProcCsv"><span class="ja">加工記録をCSVで書き出す</span><span class="en">Export the processing log as CSV</span></button>
         <button class="btn" id="exportGradeCsv"><span class="ja">格付記録をCSVで書き出す</span><span class="en">Export the grading log as CSV</span></button>
+        <button class="btn" id="exportCleanCsv"><span class="ja">洗浄記録をCSVで書き出す</span><span class="en">Export the cleaning log as CSV</span></button>
       </div>
       <div class="hidden">
       </div>
+    </div>
+
+    <div class="card">
+      <h2 class="sec"><span class="ja">継続申請書の下書き</span><span class="en">Renewal application draft</span></h2>
+      <p class="secsub">記録から <strong>A-J(申請圃場の栽培履歴と計画書)</strong> を圃場ごとに作り、A-G(機械)・A-C(圃場一覧)とあわせて Excel で書き出します。申請年度は10月〜翌9月です。書式のセル位置は申請書と同じにしてあるので、そのまま提出するか、HOASの様式に貼り付けて使えます。<span class="en">Builds the A-J cultivation history and plan for every applied field, plus the machine and field lists, as one Excel file. The application year runs October to September, and the cells sit where they sit in the official sheet, so the file can be submitted as it is or pasted into the HOAS template.</span></p>
+      <div class="field">
+        <label class="lb" for="appYear"><span class="ja">申請年度</span><span class="en">Application year</span></label>
+        <select id="appYear"></select>
+      </div>
+      <div id="appCheck"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+        <button class="btn primary" id="exportApp"><span class="ja">継続申請書(下書き)を書き出す</span><span class="en">Export the application draft</span></button>
+      </div>
+      <p class="hint">押印・講習会番号・出荷先(A-I)・種苗(A-K/L/M)など、記録から作れない欄は空のままです。書き出したあとに確認して埋めてください。<span class="en">Seals, training certificate numbers, buyers (A-I) and seed and seedling sheets (A-K/L/M) cannot come from the records and are left blank — fill them in after exporting.</span></p>
     </div>
   </section>
 </main>
@@ -770,8 +857,10 @@ var TASKS=[
   {k:"other",      ja:"その他",         en:"Other"}
 ];
 var STAGES=[
-  {k:"aracha", ja:"荒茶づくり",   en:"Making aracha",  from:"leaf"},
-  {k:"finish", ja:"仕上げ加工",   en:"Finishing",      from:"aracha"}
+  {k:"aracha", ja:"荒茶づくり",   en:"Making aracha",  from:"leaf",   base:"A"},
+  {k:"finish", ja:"仕上げ加工",   en:"Finishing",      from:"lot",    base:"S"},
+  {k:"sort",   ja:"選別",         en:"Sorting",        from:"lot",    base:"P"},
+  {k:"mill",   ja:"粉砕",         en:"Milling",        from:"lot",    base:"M"}
 ];
 var TEAS=[
   {k:"aracha",    ja:"荒茶",         en:"Aracha (crude tea)"},
@@ -797,6 +886,36 @@ var TEAS=[
 var ORGANIC=[
   {k:"organic",   ja:"有機",     en:"Organic"},
   {k:"nonorganic",ja:"有機でない",en:"Not organic"}
+];
+/* cleaning and changeover — the evidence the processing certification asks for
+   wherever equipment is shared with non-organic tea */
+var EQUIP=[
+  {k:"aracha_line", ja:"製茶ライン",   en:"Aracha line"},
+  {k:"finish_line", ja:"仕上げライン", en:"Finishing line"},
+  {k:"sorter",      ja:"選別機",       en:"Sorter"},
+  {k:"mill",        ja:"粉砕機",       en:"Mill"},
+  {k:"roaster",     ja:"焙煎機",       en:"Roaster"},
+  {k:"packer",      ja:"小分け・包装機",en:"Packing machine"},
+  {k:"container",   ja:"保管容器・袋", en:"Containers and bags"},
+  {k:"storage",     ja:"保管場所",     en:"Storage area"},
+  {k:"transport",   ja:"運搬車両",     en:"Transport"}
+];
+var PREV=[
+  {k:"nonorganic",ja:"有機でない茶", en:"Non-organic tea"},
+  {k:"organic",   ja:"有機の茶",     en:"Organic tea"},
+  {k:"none",      ja:"停止中・初回", en:"Idle or first use"}
+];
+var CMETHOD=[
+  {k:"airblow", ja:"エアブローで茶葉を除去", en:"Blown out with air"},
+  {k:"brush",   ja:"ブラシ・刷毛で清掃",     en:"Brushed out"},
+  {k:"wipe",    ja:"拭き取り",               en:"Wiped down"},
+  {k:"water",   ja:"水洗い",                 en:"Washed with water"},
+  {k:"runout",  ja:"有機茶を流して置換",     en:"Flushed through with organic tea"},
+  {k:"replace", ja:"容器・袋を交換",         en:"Containers and bags replaced"}
+];
+var CRESULT=[
+  {k:"ok",     ja:"残留なしを確認", en:"Confirmed clear"},
+  {k:"redo",   ja:"再洗浄した",     en:"Cleaned again"}
 ];
 /* Factories, by who holds the certification the work is done under:
    own       — Yusando's own certified facility
@@ -846,7 +965,8 @@ var MSG={
   exported:{ja:"書き出しました",en:"Exported"},
   exportFail:{ja:"書き出せませんでした",en:"Could not export"},
   noExport:{ja:"この画面では書き出せません",en:"Export is unavailable here"},
-  needParent:{ja:"原料の荒茶ロットを選んでください",en:"Please choose the aracha used"},
+  needParent:{ja:"原料のロットを選ぶか「自社ロットなし」を選んでください",en:"Choose an input lot, or “No lot of ours”"},
+  needExtKg:{ja:"仕入れた原料の投入量を入れてください",en:"Please enter the weight of the bought-in material"},
   needTea:{ja:"お茶の種類を選んでください",en:"Please choose the tea produced"},
   needOut:{ja:"製造量を入れてください",en:"Please enter the finished weight"},
   needLot:{ja:"格付するロットを選んでください",en:"Please choose the lot to grade"},
@@ -854,6 +974,9 @@ var MSG={
   needPacks:{ja:"内容量と袋数を入れてください",en:"Please enter the pack size and count"},
   needChecks:{ja:"確認項目をすべてチェックしてください",en:"Every check must be ticked to pass a lot"},
   needSealQty:{ja:"枚数を入れてください",en:"Please enter a count"},
+  needEquip:{ja:"洗浄した設備を選んでください",en:"Please choose what was cleaned"},
+  needMethod:{ja:"洗浄・切替の方法を書いてください",en:"Please write how it was cleaned"},
+  needChecker:{ja:"確認した人を選んでください",en:"Please choose who checked it"},
   synced:{ja:"同期しました",en:"Synced"},
   syncFail:{ja:"まだ送れていない記録があります。電波を確認してください",en:"Some records are still waiting — check your signal"}
 };
@@ -908,7 +1031,7 @@ var SEED={
 };
 
 var pdraft={date:"",stage:"aracha",workers:[],factory:"own",fieldIds:[],leaf:{},
-            parents:[],teas:[],organic:"organic",out:""};
+            parents:[],ext:false,extName:"",extKg:"",teas:[],organic:"organic",out:""};
 var store=load(),busy=false;
 var draft={date:today(),fieldIds:[],tasks:[],machineIds:[],weather:"",material:"none",workers:[],qtyByField:{}};
 
@@ -947,6 +1070,7 @@ function load(){
   o.procs=o.procs||[];
   o.factories=(o.factories&&o.factories.length)?o.factories:JSON.parse(JSON.stringify(FACTORY_SEED));
   o.grades=o.grades||[];
+  o.cleans=o.cleans||[];
   o.seals=o.seals||[];
   if(o.mastersDirty==null)o.mastersDirty=true;   /* first run pushes the registers */
   if(o.sealsDirty==null)o.sealsDirty=false;
@@ -994,6 +1118,7 @@ function pending(){
   for(i=0;i<store.logs.length;i++){if(!store.logs[i].synced)n++;}
   for(i=0;i<store.procs.length;i++){if(!store.procs[i].synced)n++;}
   for(i=0;i<store.grades.length;i++){if(!store.grades[i].synced)n++;}
+  for(i=0;i<store.cleans.length;i++){if(!store.cleans[i].synced)n++;}
   return n;
 }
 function setStatus(){
@@ -1030,6 +1155,7 @@ function sync(){
   store.logs.forEach(function(l){if(!l.synced)out.records.push(recordOut("log",l));});
   store.procs.forEach(function(p){if(!p.synced)out.records.push(recordOut("proc",p));});
   store.grades.forEach(function(g){if(!g.synced)out.records.push(recordOut("grade",g));});
+  store.cleans.forEach(function(c){if(!c.synced)out.records.push(recordOut("clean",c));});
   if(store.mastersDirty){
     out.masters.all={updatedAt:store.mastersUpdated||Date.now(),body:{fields:store.fields,machines:store.machines,
       workers:store.workers,factories:store.factories,masterRev:MASTER_REV,labels:labelMaps()}};
@@ -1045,7 +1171,7 @@ function sync(){
     if(res.status===401){member=null;showGate();return;}
     if(!res.ok)throw new Error("push failed");
     pushed.forEach(function(r){
-      var list=r.kind==="log"?store.logs:r.kind==="proc"?store.procs:store.grades;
+      var list=r.kind==="log"?store.logs:r.kind==="proc"?store.procs:r.kind==="clean"?store.cleans:store.grades;
       for(var i=0;i<list.length;i++){if(list[i].id===r.id&&(list[i].updatedAt||0)<=r.updatedAt)list[i].synced=true;}
     });
     if(mastersPushed)store.mastersDirty=false;
@@ -1057,7 +1183,7 @@ function sync(){
     var d=res.data,changed=false;
     (d.records||[]).forEach(function(r){
       if(r.deleted)return;
-      var list=r.kind==="log"?store.logs:r.kind==="proc"?store.procs:r.kind==="grade"?store.grades:null;
+      var list=r.kind==="log"?store.logs:r.kind==="proc"?store.procs:r.kind==="grade"?store.grades:r.kind==="clean"?store.cleans:null;
       if(!list)return;
       var local=null;
       for(var i=0;i<list.length;i++){if(list[i].id===r.id)local=list[i];}
@@ -1219,7 +1345,7 @@ function spread(l){
   if(l.qtyByField&&Object.keys(l.qtyByField).length)return l;
   l.qtyByField={};l.lots=l.lots||{};
   var q=parseFloat(l.qty);
-  if(!isNaN(q)&&l.fieldIds.length){
+  if(!isNaN(q)&&(l.fieldIds||[]).length){
     var per=q/l.fieldIds.length;
     l.fieldIds.forEach(function(id){
       l.qtyByField[id]=per;
@@ -1449,7 +1575,7 @@ function harvestCard(){
 function renderList(){
   var wrap=document.getElementById("logList");wrap.textContent="";
   var hs=harvestCard();if(hs)wrap.appendChild(hs);
-  if(!store.logs.length&&!store.procs.length&&!store.grades.length){
+  if(!store.logs.length&&!store.procs.length&&!store.grades.length&&!store.cleans.length){
     var e=el("p","empty");
     e.appendChild(el("span",null,"まだ記録がありません。"));
     e.appendChild(el("br"));
@@ -1458,7 +1584,8 @@ function renderList(){
   }
   var all=store.logs.map(function(l){return {kind:"log",o:l,date:l.date,u:l.updatedAt||0};})
     .concat(store.procs.map(function(p){return {kind:"proc",o:p,date:p.date,u:p.updatedAt||0};}))
-    .concat(store.grades.map(function(g){return {kind:"grade",o:g,date:g.date,u:g.updatedAt||0};}));
+    .concat(store.grades.map(function(g){return {kind:"grade",o:g,date:g.date,u:g.updatedAt||0};}))
+    .concat(store.cleans.map(function(c){return {kind:"clean",o:c,date:c.date,u:c.updatedAt||0};}));
   var sorted=all.sort(function(a,b){
     if(a.date===b.date)return b.u-a.u;
     return a.date<b.date?1:-1;
@@ -1481,7 +1608,8 @@ function renderList(){
       group.appendChild(h);wrap.appendChild(group);
     }
     group.appendChild(item.kind==="log"?logCard(item.o)
-      :item.kind==="proc"?procCard(item.o):gradeCard(item.o));
+      :item.kind==="proc"?procCard(item.o)
+      :item.kind==="clean"?cleanCard(item.o):gradeCard(item.o));
   });
   if(hidden>0){
     var more=el("button","btn");more.type="button";more.style.width="100%";
@@ -1502,8 +1630,8 @@ function fmtDate(d){
 function logCard(l){
   var c=el("div","log");
   var t=el("div","tasks");
-  t.appendChild(el("span",null,l.tasks.map(function(k){return taskOf(k).ja;}).join("・")));
-  t.appendChild(el("span","en",l.tasks.map(function(k){return taskOf(k).en;}).filter(Boolean).join(" · ")));
+  t.appendChild(el("span",null,(l.tasks||[]).map(function(k){return taskOf(k).ja;}).join("・")));
+  t.appendChild(el("span","en",(l.tasks||[]).map(function(k){return taskOf(k).en;}).filter(Boolean).join(" · ")));
   var p=el("span","pill "+(l.synced?"sync":"local"),l.synced?"同期済 Synced":"未同期 Unsynced");
   var s=el("div","sub");
   var ja=[],en=[];
@@ -1515,7 +1643,7 @@ function logCard(l){
     en.push("Worked by: "+wk.map(function(w){var p=w.split("/");return (p[1]||p[0]).trim();}).join(", "));
   }
   if(l.weather){ja.push("天候 "+weatherOf(l.weather).ja);en.push("Weather: "+weatherOf(l.weather).en);}
-  if(l.machineIds.length){ja.push("機械 "+joinJa(l.machineIds,machineOf));en.push("Machines: "+joinEn(l.machineIds,machineOf));}
+  if((l.machineIds||[]).length){ja.push("機械 "+joinJa(l.machineIds,machineOf));en.push("Machines: "+joinEn(l.machineIds,machineOf));}
   ja.push("資材 "+(l.material==="used"?(l.materialNote||"使用あり"):"なし"));
   en.push("Inputs: "+(l.material==="used"?(l.materialNote||"used"):"none"));
   if(l.startTime||l.hours){
@@ -1694,7 +1822,7 @@ function toCsv(){
     "洗浄 / Cleaning","メモ / Notes","出典 / Source"];
   var rows=[head];
   store.logs.slice().sort(function(a,b){return a.date<b.date?-1:1;}).forEach(function(l){
-    var ids=l.fieldIds.length?l.fieldIds:[""];
+    var ids=(l.fieldIds||[]).length?l.fieldIds:[""];
     ids.forEach(function(id){
       var f=id?fieldOf(id):{ja:"",en:"",addr:"",status:"applied"};
       var q=l.qtyByField&&l.qtyByField[id]!=null?fmtKg(parseFloat(l.qtyByField[id])||0):"";
@@ -1702,8 +1830,8 @@ function toCsv(){
         l.date, id, f.ja||"", f.en||"",
         id?(isApplied(f)?"申請済み / Applied":"未申請 / Not applied"):"",
         f.addr||"",
-        l.tasks.map(function(k){return taskOf(k).ja;}).join(" "),
-        l.tasks.map(function(k){return taskOf(k).en;}).join(" / "),
+        (l.tasks||[]).map(function(k){return taskOf(k).ja;}).join(" "),
+        (l.tasks||[]).map(function(k){return taskOf(k).en;}).join(" / "),
         (l.workers||[]).join(" / "), (l.workers||[]).length || "",
         weatherOf(l.weather).ja, weatherOf(l.weather).en,
         joinJa(l.machineIds,machineOf), joinEn(l.machineIds,machineOf),
@@ -1729,10 +1857,10 @@ function factoryTypeOf(k){return dict(FACTORY_TYPES,k)||FACTORY_TYPES[0];}
 function teaOf(k){return dict(TEAS,k)||{ja:k,en:""};}
 function organicOf(k){return dict(ORGANIC,k)||ORGANIC[0];}
 
-/* aracha lots already made, offered as input to a finishing run */
-function arachaLots(){
-  return store.procs.filter(function(p){return p.stage==="aracha";})
-    .sort(function(a,b){return a.date<b.date?1:-1;});
+/* lots already recorded here, offered as input to a later stage
+   (finishing, sorting, milling — each can take any earlier lot) */
+function inputLots(){
+  return store.procs.slice().sort(function(a,b){return a.date<b.date?1:-1;});
 }
 function procById(id){for(var i=0;i<store.procs.length;i++){if(store.procs[i].id===id)return store.procs[i];}return null;}
 
@@ -1759,6 +1887,7 @@ function procInput(){
     var q=procById(pid);if(!q)return;
     var v=parseFloat(q.out);if(!isNaN(v))a+=v;
   });
+  if(pdraft.ext){var e=parseFloat(pdraft.extKg);if(!isNaN(e))a+=e;}
   return a;
 }
 /* organic is not a free choice: one un-applied field or one non-organic input settles it */
@@ -1776,7 +1905,7 @@ function forcedNonOrganic(){
   return false;
 }
 function procLotFor(stage,organic,date,seq){
-  var base=stage==="aracha"?"A":"S";
+  var base=(dict(STAGES,stage)||STAGES[0]).base||"S";
   return base+(organic==="organic"?"":"U")+"-"+(date||today()).replace(/-/g,"").slice(2)+"-"+p2(seq);
 }
 function nextSeq(stage,date){
@@ -1830,7 +1959,7 @@ function renderProc(){
   var leafBox=document.getElementById("pSourceBox");
   var parentBox=document.getElementById("pParentBox");
   leafBox.classList.toggle("hidden",pdraft.stage!=="aracha");
-  parentBox.classList.toggle("hidden",pdraft.stage!=="finish");
+  parentBox.classList.toggle("hidden",pdraft.stage==="aracha");
 
   if(pdraft.stage==="aracha"){
     var pf=document.getElementById("pFieldChips");pf.textContent="";
@@ -1865,22 +1994,35 @@ function renderProc(){
     }
   }else{
     var pc=document.getElementById("pParentChips");pc.textContent="";
-    var lots=arachaLots();
+    var extChip=chipEl("自社ロットなし(仕入れ)","No lot of ours (bought in)",!!pdraft.ext,function(){
+      pdraft.ext=!pdraft.ext;renderProc();
+    });
+    extChip.classList.add("unapplied");
+    pc.appendChild(extChip);
+    var lots=inputLots();
     if(!lots.length){
       var e2=el("p","qempty");
-      e2.appendChild(el("span",null,"まだ荒茶の記録がありません。先に「荒茶づくり」を記録してください。"));
-      e2.appendChild(el("span","en","No aracha recorded yet — record a batch of aracha first."));
+      e2.appendChild(el("span",null,"まだ自社の加工記録がありません。仕入れた原料を使う場合は「自社ロットなし」を選んでください。"));
+      e2.appendChild(el("span","en","No processing recorded here yet — for bought-in material, choose “No lot of ours”."));
       pc.appendChild(e2);
     }
     lots.forEach(function(q){
       var label=q.lot+"　"+fmtKg(parseFloat(q.out)||0)+"kg";
-      var sub=procFields(q).map(function(id){return fieldOf(id).ja;}).join("、")+" · "+q.date;
+      var sub=stageOf(q.stage).ja+" · "+(procFields(q).map(function(id){return fieldOf(id).ja;}).join("、")||"仕入れ")+" · "+q.date;
       var c=chipEl(label,sub,pdraft.parents.indexOf(q.id)>-1,function(){
         toggle(pdraft.parents,q.id);renderProc();
       });
       if(q.organic!=="organic")c.classList.add("unapplied");
       pc.appendChild(c);
     });
+    document.getElementById("pExtBox").classList.toggle("hidden",!pdraft.ext);
+    var en=document.getElementById("pExtName"),ek=document.getElementById("pExtKg");
+    en.value=pdraft.extName||"";ek.value=pdraft.extKg||"";
+    en.oninput=function(){pdraft.extName=en.value;};
+    ek.oninput=function(){pdraft.extKg=ek.value;renderProcTotals();};
+    var eh=document.getElementById("pExtHint");eh.textContent="";
+    eh.appendChild(el("span",null,"仕入れた原料は圃場までの履歴が自社記録にありません。有機として扱う場合は、仕入れ先の有機JAS認証書の写しと受入記録(伝票・数量)を台帳とあわせて保管してください。"));
+    eh.appendChild(el("span","en","Bought-in material has no field history in our own records. To treat it as organic, keep the supplier's organic JAS certificate and the receiving record (invoice and weight) alongside the register."));
   }
 
   var tc=document.getElementById("pTeaChips");tc.textContent="";
@@ -1906,6 +2048,9 @@ function renderProc(){
   if(forced){
     oh.appendChild(el("span",null,"未申請の茶畑、または有機でない原料が入っているため、有機にはできません。"));
     oh.appendChild(el("span","en","An un-applied field or a non-organic input is included, so this batch cannot be organic."));
+  }else if(pdraft.ext&&pdraft.stage!=="aracha"){
+    oh.appendChild(el("span",null,"仕入れた原料が入っています。有機とするには、仕入れ先が有機JAS認証を持ち、その荒茶が有機であることを認証書と伝票で確認できることが条件です。確認できない場合は「有機でない」を選んでください。"));
+    oh.appendChild(el("span","en","This batch includes bought-in material. It can only be organic if the supplier holds organic JAS certification and the material is documented as organic on their certificate and invoice — otherwise choose “Not organic”."));
   }else{
     oh.appendChild(el("span",null,"申請済みの茶畑だけの原料です。格付を行えば有機JASマークを貼れます。"));
     oh.appendChild(el("span","en","Every input comes from an applied field, so this batch can carry the JAS mark once it has been graded."));
@@ -1948,7 +2093,11 @@ function renderProcTotals(){
 function saveProc(){
   if(busy)return;
   if(pdraft.stage==="aracha"&&!pdraft.fieldIds.length){toast(MSG.needField);return;}
-  if(pdraft.stage==="finish"&&!pdraft.parents.length){toast(MSG.needParent);return;}
+  if(pdraft.stage!=="aracha"&&!pdraft.parents.length&&!pdraft.ext){toast(MSG.needParent);return;}
+  if(pdraft.stage!=="aracha"&&pdraft.ext&&!pdraft.parents.length){
+    var ek=parseFloat(pdraft.extKg);
+    if(isNaN(ek)||ek<=0){toast(MSG.needExtKg);return;}
+  }
   if(!pdraft.teas.length){toast(MSG.needTea);return;}
   var out=parseFloat(pdraft.out);
   if(isNaN(out)||out<=0){toast(MSG.needOut);return;}
@@ -1964,6 +2113,9 @@ function saveProc(){
     id:uid(),kind:"proc",date:date,stage:pdraft.stage,workers:pdraft.workers.slice(),
     factory:pdraft.factory,fieldIds:pdraft.fieldIds.slice(),leaf:leaf,
     parents:pdraft.parents.slice(),teas:pdraft.teas.slice(),organic:pdraft.organic,
+    ext:!!pdraft.ext&&pdraft.stage!=="aracha",
+    extName:(pdraft.stage!=="aracha"&&pdraft.ext)?(document.getElementById("pExtName").value||""):"",
+    extKg:(pdraft.stage!=="aracha"&&pdraft.ext)?(parseFloat(pdraft.extKg)||0):0,
     inKg:procInput(),out:out,
     lot:procLotFor(pdraft.stage,pdraft.organic,date,nextSeq(pdraft.stage,date)),
     memo:document.getElementById("pMemo").value,
@@ -1972,7 +2124,8 @@ function saveProc(){
   store.procs.push(rec);persist();pushProcs();setStatus();renderList();
   var wasOnline=online();
   pdraft={date:date,stage:rec.stage,workers:rec.workers.slice(),factory:rec.factory,
-          fieldIds:[],leaf:{},parents:[],teas:[],organic:"organic",out:""};
+          fieldIds:[],leaf:{},parents:[],ext:false,extName:"",extKg:"",
+          teas:[],organic:"organic",out:""};
   document.getElementById("pMemo").value="";
   renderProc();
   toast(wasOnline?MSG.saved:MSG.savedLocal);
@@ -1994,6 +2147,10 @@ function procCard(p){
   if(flds.length){
     ja.push("茶畑 "+flds.map(function(id){return fieldOf(id).ja;}).join("、"));
     en.push("Fields: "+flds.map(function(id){return fieldOf(id).en||fieldOf(id).ja;}).join(", "));
+  }
+  if(p.ext){
+    ja.push("仕入れ原料 "+(p.extName||"—")+(p.extKg?(" "+fmtKg(p.extKg)+"kg"):""));
+    en.push("Bought in: "+(p.extName||"—")+(p.extKg?(" "+fmtKg(p.extKg)+"kg"):""));
   }
   if(p.workers&&p.workers.length){
     ja.push("作業者 "+p.workers.map(function(w){return w.split("/")[0].trim();}).join("、"));
@@ -2022,7 +2179,8 @@ function procCard(p){
 function procCsv(){
   var head=["日付 / Date","工程 / Stage","ロット / Lot","工場 / Factory",
     "有機区分 / Organic","お茶の種類 / Tea (JA)","Tea (EN)","原料の茶畑 / Source fields",
-    "原料ロット / Input lots","投入量kg / Input kg","製造量kg / Output kg","歩留まり% / Yield %",
+    "原料ロット / Input lots","仕入れ原料 / Bought-in material","仕入れ量kg / Bought-in kg",
+    "投入量kg / Input kg","製造量kg / Output kg","歩留まり% / Yield %",
     "作業者 / Workers","メモ / Notes"];
   var rows=[head];
   store.procs.slice().sort(function(a,b){return a.date<b.date?-1:1;}).forEach(function(p){
@@ -2034,6 +2192,7 @@ function procCsv(){
       p.teas.map(function(k){return teaOf(k).en;}).join(" / "),
       procFields(p).map(function(id){return fieldOf(id).ja;}).join(" "),
       (p.parents||[]).map(function(id){var q=procById(id);return q?q.lot:id;}).join(" "),
+      p.ext?(p.extName||"仕入れ / bought in"):"", p.ext?fmtKg(p.extKg||0):"",
       fmtKg(p.inKg||0), fmtKg(p.out||0),
       p.inKg>0?(Math.round(p.out/p.inKg*1000)/10):"",
       (p.workers||[]).join(" / "), p.memo||""
@@ -2372,6 +2531,603 @@ function saveCsv(filename,data){
   }catch(e){toast(MSG.exportFail);}
 }
 
+/* ================= cleaning &amp; changeover records ================= */
+var cdraft={date:"",factory:"",equip:[],equipOther:"",prev:"nonorganic",
+            methods:[],method:"",methodEdited:false,workers:[],result:"ok"};
+function equipOf(k){return dict(EQUIP,k)||{ja:k,en:""};}
+function cleanEquipNames(c){
+  var out=(c.equip||[]).map(function(k){return equipOf(k).ja;});
+  if(c.equipOther)out.push(c.equipOther);
+  return out;
+}
+function renderClean(){
+  if(!cdraft.date)cdraft.date=today();
+  document.getElementById("cdate").value=cdraft.date;
+  if(!cdraft.factory)cdraft.factory=(store.factories[0]||{}).k||"own";
+
+  var fc=document.getElementById("cFactoryChips");fc.textContent="";
+  store.factories.forEach(function(f){
+    fc.appendChild(chipEl(f.ja,f.en,cdraft.factory===f.k,function(){
+      cdraft.factory=f.k;renderClean();
+    }));
+  });
+
+  var ec=document.getElementById("cEquipChips");ec.textContent="";
+  EQUIP.forEach(function(e){
+    ec.appendChild(chipEl(e.ja,e.en,cdraft.equip.indexOf(e.k)>-1,function(){
+      toggle(cdraft.equip,e.k);renderClean();
+    }));
+  });
+  var eo=document.getElementById("cEquipOther");
+  eo.value=cdraft.equipOther||"";
+  eo.oninput=function(){cdraft.equipOther=eo.value;};
+
+  var pc=document.getElementById("cPrevChips");pc.textContent="";
+  PREV.forEach(function(p){
+    var c=chipEl(p.ja,p.en,cdraft.prev===p.k,function(){cdraft.prev=p.k;renderClean();});
+    if(p.k==="nonorganic")c.classList.add("unapplied");
+    pc.appendChild(c);
+  });
+  var ph=document.getElementById("cPrevHint");ph.textContent="";
+  if(cdraft.prev==="nonorganic"){
+    ph.appendChild(el("span",null,"有機でない茶のあとに有機を流す切替です。この記録が有機の証明を支えます。"));
+    ph.appendChild(el("span","en","A changeover from non-organic to organic — this is the record that carries the organic claim."));
+  }
+
+  var mc=document.getElementById("cMethodChips");mc.textContent="";
+  CMETHOD.forEach(function(m){
+    mc.appendChild(chipEl(m.ja,m.en,cdraft.methods.indexOf(m.k)>-1,function(){
+      toggle(cdraft.methods,m.k);
+      /* the box follows the chips until someone types in it by hand */
+      if(!cdraft.methodEdited){
+        cdraft.method=cdraft.methods.map(function(k){return dict(CMETHOD,k).ja;}).join("、");
+      }
+      renderClean();
+    }));
+  });
+  var mt=document.getElementById("cMethod");
+  mt.value=cdraft.method||"";
+  mt.oninput=function(){cdraft.method=mt.value;cdraft.methodEdited=true;};
+
+  var wc=document.getElementById("cWorkerChips");wc.textContent="";
+  store.workers.forEach(function(w){
+    var parts=w.split("/");
+    wc.appendChild(chipEl(parts[0].trim(),parts.length>1?parts.slice(1).join("/").trim():"",
+      cdraft.workers.indexOf(w)>-1,function(){toggle(cdraft.workers,w);renderClean();}));
+  });
+
+  var rc=document.getElementById("cResultChips");rc.textContent="";
+  CRESULT.forEach(function(r){
+    var c=chipEl(r.ja,r.en,cdraft.result===r.k,function(){cdraft.result=r.k;renderClean();});
+    if(r.k==="redo")c.classList.add("unapplied");
+    rc.appendChild(c);
+  });
+}
+function saveClean(){
+  if(busy)return;
+  if(!cdraft.equip.length&&!cdraft.equipOther.trim()){toast(MSG.needEquip);return;}
+  if(!cdraft.method.trim()){toast(MSG.needMethod);return;}
+  if(!cdraft.workers.length){toast(MSG.needChecker);return;}
+  busy=true;
+  var date=cdraft.date||today();
+  var rec={
+    id:uid(),kind:"clean",date:date,factory:cdraft.factory,
+    equip:cdraft.equip.slice(),equipOther:cdraft.equipOther.trim(),
+    prev:cdraft.prev,methods:cdraft.methods.slice(),method:cdraft.method.trim(),
+    workers:cdraft.workers.slice(),result:cdraft.result,
+    memo:document.getElementById("cMemo").value,
+    updatedAt:Date.now(),synced:false
+  };
+  store.cleans.push(rec);persist();scheduleSync();setStatus();renderList();
+  var wasOnline=online();
+  cdraft={date:date,factory:rec.factory,equip:[],equipOther:"",prev:"nonorganic",
+          methods:[],method:"",methodEdited:false,workers:rec.workers.slice(),result:"ok"};
+  document.getElementById("cMemo").value="";
+  renderClean();
+  toast(wasOnline?MSG.saved:MSG.savedLocal);
+  busy=false;
+}
+function cleanCard(c){
+  var d=el("div","log clean");
+  var t=el("div","tasks");
+  t.appendChild(el("span",null,"洗浄・切替 — "+cleanEquipNames(c).join("・")));
+  t.appendChild(el("span","en","Cleaning — "+((c.equip||[]).map(function(k){return equipOf(k).en;}).concat(c.equipOther?[c.equipOther]:[]).join(" · "))));
+  var pill=el("span","pill "+(c.synced?"sync":"local"),c.synced?"同期済 Synced":"未同期 Unsynced");
+  var s=el("div","sub"),ja=[],en=[];
+  ja.push("場所 "+factoryOf(c.factory).ja);en.push("Where: "+factoryOf(c.factory).en);
+  ja.push("直前 "+(dict(PREV,c.prev)||PREV[0]).ja);en.push("Before: "+(dict(PREV,c.prev)||PREV[0]).en);
+  if(c.workers&&c.workers.length){
+    ja.push("確認 "+c.workers.map(function(w){return w.split("/")[0].trim();}).join("、"));
+    en.push("Checked by: "+c.workers.map(function(w){var q=w.split("/");return (q[1]||q[0]).trim();}).join(", "));
+  }
+  s.appendChild(el("span",null,ja.join(" / ")));
+  s.appendChild(el("span","en",en.join(" / ")));
+  var br=el("div");br.style.marginTop="7px";
+  br.style.display="flex";br.style.flexWrap="wrap";br.style.gap="6px";br.style.alignItems="center";
+  br.appendChild(el("span","tag "+(c.prev==="nonorganic"?"unapplied":"applied"),
+    c.prev==="nonorganic"?"切替 Changeover":"通常 Routine"));
+  br.appendChild(el("span","tag "+(c.result==="ok"?"applied":"unapplied"),
+    (dict(CRESULT,c.result)||CRESULT[0]).ja));
+  s.appendChild(br);
+  d.appendChild(t);d.appendChild(pill);d.appendChild(s);
+  if(c.method)d.appendChild(el("div","memo",c.method));
+  if(c.memo)d.appendChild(el("div","memo",c.memo));
+  return d;
+}
+function cleanCsv(){
+  var head=["日付 / Date","場所 / Where","設備 / Equipment","直前 / Ran before",
+    "洗浄方法 / Cleaning","結果 / Result","確認者 / Checked by","メモ / Notes"];
+  var rows=[head];
+  store.cleans.slice().sort(function(a,b){return a.date<b.date?-1:1;}).forEach(function(c){
+    rows.push([c.date,factoryOf(c.factory).ja+" / "+factoryOf(c.factory).en,
+      cleanEquipNames(c).join(" "),(dict(PREV,c.prev)||PREV[0]).ja,
+      c.method||"",(dict(CRESULT,c.result)||CRESULT[0]).ja,
+      (c.workers||[]).join(" / "),c.memo||""]);
+  });
+  return "﻿"+rows.map(function(r){
+    return r.map(function(x){return '"'+String(x==null?"":x).replace(/"/g,'""')+'"';}).join(",");
+  }).join("\r\n");
+}
+
+/* ================= renewal application (継続申請書) =================
+   The A-J sheet is a fixed grid: months run across columns B..M (Oct→Sep),
+   row 14 carries the work done, row 23 the harvest, and rows 28/36 the plan
+   for the year ahead. We write into those very cells, so the sheet can go in
+   as it is or be pasted straight into the HOAS workbook. */
+
+var APP_ORG="株式会社　悠三堂", APP_CERT="18A-008",
+    APP_ADDR="奈良県奈良市上深川町227番地", APP_ZIP="〒632-0102";
+/* cleaning methods as written in the 2025 application, kept by machine name */
+var CLEAN={
+  "摘採機":"使用後に刈り歯部分を拭き取り",
+  "乗用摘採機":"使用後に刈り歯部分を拭き取り。機械に茶葉が残らないように掃除。",
+  "刈り直し機":"使用後に刈り歯部分を拭き取り",
+  "自走式両面裾刈り機":"使用後に刈り歯部分を拭き取り",
+  "両面裾刈り機":"使用後に刈り歯部分を拭き取り",
+  "片面裾刈り機":"使用後に刈り歯部分を拭き取り",
+  "刈り払い機":"使用後に刈り歯部分を拭き取り",
+  "ハンマーナイフモア":"使用後に刈り歯部分を拭き取り",
+  "軽トラック":"運搬後に、荷台を掃く。"
+};
+/* Oct(y-1) … Sep(y) — the twelve columns of the sheet, in sheet order */
+function appMonths(year){
+  var out=[],i;
+  for(i=10;i<=12;i++)out.push({y:year-1,m:i});
+  for(i=1;i<=9;i++)out.push({y:year,m:i});
+  return out;
+}
+function appYears(){
+  var ys={},now=new Date();
+  store.logs.forEach(function(l){
+    if(!l.date)return;
+    var d=l.date.split("-"),y=parseInt(d[0],10),m=parseInt(d[1],10);
+    ys[m>=10?y+1:y]=true;
+  });
+  var cur=now.getMonth()+1>=10?now.getFullYear()+1:now.getFullYear();
+  ys[cur]=true;
+  return Object.keys(ys).map(Number).sort(function(a,b){return b-a;});
+}
+function appliedFields(){
+  return store.fields.filter(function(f){return f.status==="applied";});
+}
+/* what happened in one field in one month */
+function monthWork(fieldId,y,m){
+  var pre=y+"-"+p2(m)+"-",names=[],kg=0,material=[];
+  store.logs.forEach(function(l){
+    if(!l.date||l.date.indexOf(pre)!==0)return;
+    if((l.fieldIds||[]).indexOf(fieldId)<0)return;
+    (l.tasks||[]).forEach(function(k){
+      var t=dict(TASKS,k);var nm=t?t.ja:k;
+      if(names.indexOf(nm)<0)names.push(nm);
+    });
+    var q=(l.qtyByField||{})[fieldId];
+    var v=parseFloat(q);if(!isNaN(v))kg+=v;
+    if(l.material==="used"&&l.materialNote&&material.indexOf(l.materialNote)<0)material.push(l.materialNote);
+  });
+  return {text:names.join("&"),kg:kg,material:material};
+}
+function appData(year){
+  var months=appMonths(year);
+  return appliedFields().map(function(f,idx){
+    var cells=months.map(function(mm){return monthWork(f.id,mm.y,mm.m);});
+    var total=0;cells.forEach(function(c){total+=c.kg;});
+    return {field:f,no:idx+1,months:months,cells:cells,total:total};
+  });
+}
+/* things worth a look before the sheet is submitted */
+function appIssues(year){
+  var out=[],data=appData(year);
+  data.forEach(function(d){
+    var worked=0;d.cells.forEach(function(c){if(c.text)worked++;});
+    if(!worked)out.push({ja:d.field.ja+"：この年度の作業記録がありません",
+                         en:d.field.ja+": no work recorded in this year"});
+    d.cells.forEach(function(c,i){
+      if(c.kg>0&&!c.text)out.push({ja:d.field.ja+" "+d.months[i].m+"月：収穫量はあるが作業の記録がありません",
+                                   en:d.field.ja+" month "+d.months[i].m+": harvest weight without a work record"});
+    });
+    var mats=[];d.cells.forEach(function(c){c.material.forEach(function(m){if(mats.indexOf(m)<0)mats.push(m);});});
+    if(mats.length)out.push({ja:"A-N 投入資材に記入が必要です："+mats.join("、"),
+                             en:"A-N (materials) needs an entry: "+mats.join(", ")});
+  });
+  /* processing side */
+  var procs=store.procs.filter(function(p){return inYear(p.date,year);});
+  var cleans=store.cleans.filter(function(x){return inYear(x.date,year);});
+  var shared={};
+  procs.forEach(function(p){
+    var f=factoryOf(p.factory);
+    if(f.type==="entrusted")shared[f.ja]=true;
+  });
+  Object.keys(shared).forEach(function(name){
+    if(!cleans.length)out.push({ja:"委託加工("+name+")の記録がありますが、洗浄・切替記録がこの年度にありません",
+                                en:"Entrusted processing at "+name+" is recorded, but no cleaning record exists for this year"});
+  });
+  procs.forEach(function(p){
+    var f=factoryOf(p.factory);
+    if(f.type==="certified"&&(!f.certNo||!f.certExp))
+      out.push({ja:f.ja+"：認証番号と有効期限が台帳に登録されていません",
+                en:f.ja+": certificate number and expiry are missing from the register"});
+    if(p.ext&&p.organic==="organic"&&!p.extName)
+      out.push({ja:p.date+" "+(p.lot||"")+"：仕入れ原料を有機として扱っていますが、仕入れ先が書かれていません",
+                en:p.date+" "+(p.lot||"")+": bought-in material treated as organic with no supplier named"});
+  });
+  var seen={};
+  return out.filter(function(x){if(seen[x.ja])return false;seen[x.ja]=true;return true;});
+}
+
+/* ---- a very small xlsx writer: zip (stored) + inline-string sheets ---- */
+function colName(n){var s="";while(n>0){var r=(n-1)%26;s=String.fromCharCode(65+r)+s;n=(n-r-1)/26;}return s;}
+function xmlEsc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+function sheetXml(sh){
+  var rows={},k;
+  for(k in sh.cells){
+    if(!sh.cells.hasOwnProperty(k))continue;
+    var v=sh.cells[k];if(v===""||v==null)continue;
+    var m=/^([A-Z]+)(\d+)$/.exec(k);if(!m)continue;
+    (rows[m[2]]=rows[m[2]]||[]).push({ref:k,col:m[1],v:v});
+  }
+  var nums=Object.keys(rows).map(Number).sort(function(a,b){return a-b;});
+  var body=nums.map(function(r){
+    var cs=rows[String(r)].sort(function(a,b){
+      return a.col.length===b.col.length?(a.col<b.col?-1:1):a.col.length-b.col.length;
+    }).map(function(c){
+      if(typeof c.v==="number"&&isFinite(c.v))
+        return '<c r="'+c.ref+'"><v>'+c.v+'</v></c>';
+      return '<c r="'+c.ref+'" t="inlineStr"><is><t xml:space="preserve">'+xmlEsc(c.v)+'</t></is></c>';
+    }).join("");
+    return '<row r="'+r+'">'+cs+'</row>';
+  }).join("");
+  var cols=(sh.cols||[]).map(function(w,i){
+    return '<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+w+'" customWidth="1"/>';
+  }).join("");
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+    +'<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+    +(cols?'<cols>'+cols+'</cols>':'')
+    +'<sheetData>'+body+'</sheetData></worksheet>';
+}
+var CRCT=(function(){
+  var t=[],c,n,k;
+  for(n=0;n<256;n++){c=n;for(k=0;k<8;k++)c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);t[n]=c>>>0;}
+  return t;
+})();
+function crc32(bytes){
+  var c=0xFFFFFFFF;
+  for(var i=0;i<bytes.length;i++)c=CRCT[(c^bytes[i])&0xFF]^(c>>>8);
+  return (c^0xFFFFFFFF)>>>0;
+}
+function utf8(s){return new TextEncoder().encode(s);}
+function zipFile(entries){
+  var parts=[],central=[],offset=0;
+  function u16(n){return [n&255,(n>>8)&255];}
+  function u32(n){return [n&255,(n>>8)&255,(n>>16)&255,(n>>>24)&255];}
+  entries.forEach(function(e){
+    var name=utf8(e.name),data=utf8(e.data),crc=crc32(data);
+    var head=[].concat([0x50,0x4b,0x03,0x04],u16(20),u16(0x0800),u16(0),u16(0),u16(0),
+      u32(crc),u32(data.length),u32(data.length),u16(name.length),u16(0));
+    parts.push(new Uint8Array(head),name,data);
+    central.push({name:name,crc:crc,len:data.length,off:offset});
+    offset+=head.length+name.length+data.length;
+  });
+  var cd=[],cdLen=0;
+  central.forEach(function(c){
+    var h=[].concat([0x50,0x4b,0x01,0x02],u16(20),u16(20),u16(0x0800),u16(0),u16(0),u16(0),
+      u32(c.crc),u32(c.len),u32(c.len),u16(c.name.length),u16(0),u16(0),u16(0),u16(0),
+      u32(0),u32(c.off));
+    cd.push(new Uint8Array(h),c.name);cdLen+=h.length+c.name.length;
+  });
+  var end=new Uint8Array([].concat([0x50,0x4b,0x05,0x06],u16(0),u16(0),
+    u16(central.length),u16(central.length),u32(cdLen),u32(offset),u16(0)));
+  var all=parts.concat(cd,[end]),size=0;
+  all.forEach(function(p){size+=p.length;});
+  var out=new Uint8Array(size),at=0;
+  all.forEach(function(p){out.set(p,at);at+=p.length;});
+  return out;
+}
+function makeXlsx(sheets){
+  var files=[
+    {name:"[Content_Types].xml",data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+      +'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+      +'<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+      +'<Default Extension="xml" ContentType="application/xml"/>'
+      +'<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'
+      +sheets.map(function(s,i){return '<Override PartName="/xl/worksheets/sheet'+(i+1)+'.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>';}).join("")
+      +'</Types>'},
+    {name:"_rels/.rels",data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+      +'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+      +'<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>'
+      +'</Relationships>'},
+    {name:"xl/workbook.xml",data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+      +'<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" '
+      +'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>'
+      +sheets.map(function(s,i){return '<sheet name="'+xmlEsc(s.name)+'" sheetId="'+(i+1)+'" r:id="rId'+(i+1)+'"/>';}).join("")
+      +'</sheets></workbook>'},
+    {name:"xl/_rels/workbook.xml.rels",data:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+      +'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+      +sheets.map(function(s,i){return '<Relationship Id="rId'+(i+1)+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet'+(i+1)+'.xml"/>';}).join("")
+      +'</Relationships>'}
+  ];
+  sheets.forEach(function(s,i){files.push({name:"xl/worksheets/sheet"+(i+1)+".xml",data:sheetXml(s)});});
+  return zipFile(files);
+}
+function safeSheetName(s){
+  return String(s).replace(/[\[\]\*\/\\\?:]/g,"-").slice(0,31);
+}
+/* ---- the sheets themselves ---- */
+function ajSheet(d,year){
+  var c={},i;
+  c.A3="Ａ－Ｊ";c.E3="申請圃場の栽培履歴と計画書";
+  c.A5="生産行程管理者名";c.D5=APP_ORG;
+  c.A7="1.申請圃場栽培履歴と計画書　※圃場ごとに記入してください。";
+  c.A8="A-Cの№";c.C8=d.no;c.E8="圃場番号";c.G8=d.no;c.J8="通称名";c.L8=d.field.ja;
+  c.B9="記号 ： 播種→○ 定植→△ 基肥→基 追肥→追 農薬→農 収穫→□";
+  c.A11="栽培履歴";
+  c.A12="年";c.A13="月";c.A14="履歴";c.A23="収穫量(kg)";
+  c.N12="作付作物名　（米と茶は収量を記入）";c.N14="茶";
+  d.months.forEach(function(mm,i2){
+    var col=colName(i2+2);
+    c[col+"12"]=mm.y;c[col+"13"]=mm.m;
+    if(d.cells[i2].text)c[col+"14"]=d.cells[i2].text;
+    if(d.cells[i2].kg>0)c[col+"23"]=Math.round(d.cells[i2].kg*10)/10;
+  });
+  c.N23=Math.round(d.total*10)/10;
+  /* the plan for the year ahead starts as a copy of what was actually done */
+  c.A25="2.申請圃場の栽培計画書（申請提出月より1年先まで）";
+  c.A26="年";c.A27="月";c.A28="計画";c.A36="収穫量(kg)";c.N26="作付作物名";c.N28="茶";
+  appMonths(year+1).forEach(function(mm,i2){
+    var col=colName(i2+2);
+    c[col+"26"]=mm.y;c[col+"27"]=mm.m;
+    if(d.cells[i2].text)c[col+"28"]=d.cells[i2].text;
+  });
+  c.A38="※計画は前年度の実績を写した下書きです。提出前に確認してください。";
+  return {name:safeSheetName("A-J-"+d.field.ja),cells:c,
+          cols:[10,11,11,11,11,11,11,11,11,11,11,11,11,16]};
+}
+function agSheet(){
+  var c={};
+  c.A3="Ａ－Ｇ";c.E3="生産行程に使用する全ての機械";
+  c.A5="生産行程管理者名";c.E5=APP_ORG;
+  c.A8="1.生産行程(農作業、調製作業、出荷）に使用する 全ての機械";
+  c.A9="№";c.B9="種　別";c.F9="所有数";c.H9="個人・共同・借用の区別";
+  c.K9="有機専用／有機以外併用";c.N9="清掃又は洗浄方法";c.S9="清掃記録の有無";
+  store.machines.forEach(function(m,i){
+    var r=12+i;
+    c["A"+r]=i+1;c["B"+r]=m.ja;c["G"+r]=m.n||"";
+    c["H"+r]="個･共・借";c["K"+r]=m.shared?"有・併":"有・併";
+    c["N"+r]=CLEAN[m.ja]||"";c["S"+r]="有　・　無";
+  });
+  return {name:"A-G 機械",cells:c,cols:[6,20,8,8,8,8,8,10,8,8,10,8,8,26]};
+}
+function acSheet(year){
+  var c={};
+  c.A3="Ａ－Ｃ";c.E3="申請圃場の一覧";
+  c.A5="生産行程管理者名";c.D5=APP_ORG;
+  c.A7="認定番号";c.B7=APP_CERT;c.D7="申請年度";c.E7=year+"年度(10月〜9月)";
+  c.A9="№";c.B9="通称名";c.C9="英語表記";c.D9="所在地";c.F9="面積(a)";
+  c.G9="有機管理開始";c.H9="年間収穫量(kg)";
+  var data=appData(year);
+  data.forEach(function(d,i){
+    var r=10+i;
+    c["A"+r]=d.no;c["B"+r]=d.field.ja;c["C"+r]=d.field.en||"";
+    c["D"+r]=d.field.addr||"";c["F"+r]=d.field.area||"";
+    c["G"+r]=d.field.since||"";c["H"+r]=Math.round(d.total*10)/10;
+  });
+  var tot=0;data.forEach(function(d){tot+=d.total;});
+  c["B"+(10+data.length+1)]="合計";c["H"+(10+data.length+1)]=Math.round(tot*10)/10;
+  return {name:"A-C 圃場一覧",cells:c,cols:[6,16,16,34,8,10,12,14]};
+}
+function coverSheet(year){
+  var c={};
+  c.A1="継続申請書 下書き / Renewal application draft";
+  c.A2="この表は「悠三堂 有機JAS記録」から自動で作りました。提出前に必ず内容を確認してください。";
+  c.A4="認定番号";c.B4=APP_CERT;
+  c.A5="生産行程管理者名";c.B5=APP_ORG;
+  c.A6="住所";c.B6=APP_ZIP+" "+APP_ADDR;
+  c.A7="申請年度";c.B7=year+"年度（"+(year-1)+"年10月〜"+year+"年9月）";
+  c.A8="書き出した日";c.B8=today();
+  c.A10="この表に入っているもの";
+  c.A11="A-C 圃場一覧";c.B11="申請中の圃場と年間収穫量";
+  c.A12="A-G 機械";c.B12="台帳の機械一覧と清掃方法";
+  c.A13="A-J-（圃場名）";c.B13="圃場ごとの栽培履歴（実績）と、翌年の計画の下書き";
+  c.A14="加工-工程フロー";c.B14="記録から作った製造工程の流れ（加工の申請用）";
+  c.A15="加工-記録一覧 ほか";c.B15="加工記録・原料受入・施設と設備・洗浄切替記録・格付小分け";
+  c.A17="記録から作れないので、手で埋める欄";
+  c.A18="A-申請";c.B18="担当者名と押印、講習会の受講日と修了証番号、変更箇所の○";
+  c.A19="A-I";c.B19="格付品目の出荷先、JASマーク包材";
+  c.A20="A-K / A-L / A-M";c.B20="種子・苗・育苗（該当なしのチェック）";
+  c.A21="A-N / A-O";c.B21="投入資材・農薬（使用なしのチェック、使った資材があれば記入）";
+  c.A22="加工の様式";c.B22="加工はHOASの様式番号が別にあります。上の加工シートは中身の下書きとして使い、様式に写してください";
+  c.A24="確認したほうがよい点";
+  var iss=appIssues(year);
+  if(!iss.length)c.A25="（特にありません）";
+  iss.slice(0,40).forEach(function(x,i){c["A"+(25+i)]=x.ja;});
+  return {name:"はじめに",cells:c,cols:[24,60]};
+}
+/* ---- processing side: the sheets the 加工 application will want ----
+   HOAS uses its own form numbers for processing, so these are named by what
+   they contain rather than by a form code we have not seen. */
+function inYear(date,year){
+  if(!date)return false;
+  return date>=(year-1)+"-10-01"&&date<=year+"-09-30";
+}
+function procFlowSheet(year){
+  var c={},used={},r;
+  store.procs.forEach(function(p){
+    if(!inYear(p.date,year))return;
+    used[p.stage]=used[p.stage]||{};used[p.stage][p.factory]=true;
+  });
+  c.A1="加工 — 製造工程フロー（記録から作成）";
+  c.A2="Processing flow, built from the records of "+year+"年度";
+  c.A3="生産行程管理者名";c.B3=APP_ORG;
+  c.A5="工程";c.B5="行う場所";c.C5="この工程で気をつけること";
+  r=6;
+  c["A"+r]="① 原料の受入";c["B"+r]="自社（申請圃場からの生葉、仕入れ荒茶）";
+  c["C"+r]="申請圃場の生葉か、有機JAS認証を持つ仕入れ先の荒茶であることを確認。伝票・認証書を保管";r++;
+  STAGES.forEach(function(st){
+    var fs=used[st.k]?Object.keys(used[st.k]).map(function(k){return factoryOf(k).ja;}).join("、"):"（この年度は記録なし）";
+    c["A"+r]="② "+st.ja;c["B"+r]=fs;
+    c["C"+r]=(st.k==="aracha"
+      ? "有機以外と同じ設備を使う場合は、先に洗浄して記録を残す"
+      : "ロット番号で原料と製品をつなぐ。有機以外との混同を防ぐ");
+    r++;
+  });
+  c["A"+r]="③ 小分け・包装";c["B"+r]="自社";c["C"+r]="包材の切替時に設備を清掃。JASマークの管理は格付後";r++;
+  c["A"+r]="④ 格付";c["B"+r]="自社（格付担当者）";c["C"+r]="5項目の確認をしてから合格。数量とシール枚数を台帳と照合";r++;
+  c["A"+r]="⑤ 保管・出荷";c["B"+r]="自社";c["C"+r]="有機と有機以外を分けて保管。出荷先とロットを記録";r++;
+  c["A"+(r+1)]="※工程は「悠三堂 有機JAS記録」の加工記録から自動で作った下書きです。実際の設備配置に合わせて直してください。";
+  return {name:"加工-工程フロー",cells:c,cols:[22,34,54]};
+}
+function procListSheet(year){
+  var c={},r=6;
+  c.A1="加工記録一覧 "+year+"年度（"+(year-1)+"年10月〜"+year+"年9月）";
+  c.A3="生産行程管理者名";c.B3=APP_ORG;
+  c.A5="日付";c.B5="工程";c.C5="ロット";c.D5="工場";c.E5="原料（ロット／茶畑）";
+  c.F5="仕入れ原料";c.G5="投入kg";c.H5="製造kg";c.I5="お茶の種類";c.J5="有機区分";c.K5="作業者";
+  store.procs.slice().filter(function(p){return inYear(p.date,year);})
+    .sort(function(a,b){return a.date<b.date?-1:1;}).forEach(function(p){
+    c["A"+r]=p.date;c["B"+r]=stageOf(p.stage).ja;c["C"+r]=p.lot||"";
+    c["D"+r]=factoryOf(p.factory).ja;
+    c["E"+r]=p.stage==="aracha"
+      ? (p.fieldIds||[]).map(function(id){return fieldOf(id).ja;}).join("、")
+      : (p.parents||[]).map(function(id){var q=procById(id);return q?q.lot:id;}).join(" ");
+    c["F"+r]=p.ext?(p.extName||"仕入れ"):"";
+    c["G"+r]=Math.round((p.inKg||0)*10)/10;c["H"+r]=Math.round((p.out||0)*10)/10;
+    c["I"+r]=(p.teas||[]).map(function(k){return teaOf(k).ja;}).join("・");
+    c["J"+r]=organicOf(p.organic).ja;
+    c["K"+r]=(p.workers||[]).map(function(w){return w.split("/")[0].trim();}).join("、");
+    r++;
+  });
+  if(r===6)c.A6="（この年度の加工記録はありません）";
+  return {name:"加工-記録一覧",cells:c,cols:[12,12,15,16,18,18,10,10,18,12,18]};
+}
+function intakeSheet(year){
+  var c={},r=6;
+  c.A1="原料の受入（仕入れた荒茶等） "+year+"年度";
+  c.A2="※自社の申請圃場から入った生葉は「加工-記録一覧」の投入量に含まれます。";
+  c.A5="日付";c.B5="仕入れ先・原料名";c.C5="数量kg";c.D5="使った工程";c.E5="有機区分";c.F5="この記録のロット";
+  store.procs.slice().filter(function(p){return inYear(p.date,year)&&p.ext;})
+    .sort(function(a,b){return a.date<b.date?-1:1;}).forEach(function(p){
+    c["A"+r]=p.date;c["B"+r]=p.extName||"";c["C"+r]=Math.round((p.extKg||0)*10)/10;
+    c["D"+r]=stageOf(p.stage).ja;c["E"+r]=organicOf(p.organic).ja;c["F"+r]=p.lot||"";r++;
+  });
+  if(r===6)c.A6="（この年度に仕入れ原料の記録はありません）";
+  else c["B"+(r+1)]="※有機として扱ったものは、仕入れ先の有機JAS認証書の写しを添付してください。";
+  return {name:"加工-原料受入",cells:c,cols:[12,30,10,14,12,16]};
+}
+function facilitySheet(){
+  var c={},r=6;
+  c.A1="加工の施設・設備";
+  c.A3="生産行程管理者名";c.B3=APP_ORG;
+  c.A5="工場";c.B5="英語表記";c.C5="認証の区分";c.D5="認証番号";c.E5="有効期限";c.F5="必要な書類";
+  store.factories.forEach(function(f){
+    c["A"+r]=f.ja;c["B"+r]=f.en||"";c["C"+r]=factoryTypeOf(f.type).ja;
+    c["D"+r]=f.certNo||"";c["E"+r]=f.certExp||"";
+    c["F"+r]=f.type==="entrusted"?"受託契約書、洗浄・切替記録"
+            :f.type==="certified"?"先方の認証書の写し（有効期限内）":"自社の設備・工程の記録";
+    r++;
+  });
+  r+=2;
+  c["A"+r]="設備（洗浄記録の対象）";r++;
+  EQUIP.forEach(function(e){c["A"+r]=e.ja;c["B"+r]=e.en;r++;});
+  return {name:"加工-施設と設備",cells:c,cols:[22,20,16,18,14,34]};
+}
+function cleanSheet(year){
+  var c={},r=6;
+  c.A1="洗浄・切替記録 "+year+"年度";
+  c.A2="※有機以外と設備を共用する場合の切替記録です。";
+  c.A5="日付";c.B5="場所";c.C5="設備・ライン";c.D5="直前に流したもの";c.E5="洗浄・切替の方法";c.F5="結果";c.G5="確認した人";
+  store.cleans.slice().filter(function(x){return inYear(x.date,year);})
+    .sort(function(a,b){return a.date<b.date?-1:1;}).forEach(function(x){
+    c["A"+r]=x.date;c["B"+r]=factoryOf(x.factory).ja;c["C"+r]=cleanEquipNames(x).join("、");
+    c["D"+r]=(dict(PREV,x.prev)||PREV[0]).ja;c["E"+r]=x.method||"";
+    c["F"+r]=(dict(CRESULT,x.result)||CRESULT[0]).ja;
+    c["G"+r]=(x.workers||[]).map(function(w){return w.split("/")[0].trim();}).join("、");
+    r++;
+  });
+  if(r===6)c.A6="（この年度の洗浄記録はまだありません。委託加工や設備の共用があるなら、記録が必要です）";
+  return {name:"加工-洗浄切替記録",cells:c,cols:[12,18,26,18,40,16,18]};
+}
+function gradeSheet(year){
+  var c={},r=6;
+  c.A1="格付・小分け記録 "+year+"年度";
+  c.A5="格付日";c.B5="格付ロット";c.C5="原料ロット";c.D5="内容量g";c.E5="袋数";c.F5="格付数量kg";
+  c.G5="JASマーク";c.H5="判定";c.I5="格付担当者";
+  store.grades.slice().filter(function(g){return inYear(g.date,year);})
+    .sort(function(a,b){return a.date<b.date?-1:1;}).forEach(function(g){
+    c["A"+r]=g.date;c["B"+r]=g.lot||"";c["C"+r]=g.sourceLot||"";
+    c["D"+r]=g.gram||"";c["E"+r]=g.packs||"";c["F"+r]=Math.round((g.qty||0)*100)/100;
+    c["G"+r]=g.mark==="seal"?("シール "+(g.seals||0)+"枚"):"印刷済み包材";
+    c["H"+r]=g.result==="pass"?"適合":"不適合";
+    c["I"+r]=(g.workers||[]).map(function(w){return w.split("/")[0].trim();}).join("、");
+    r++;
+  });
+  if(r===6)c.A6="（この年度の格付記録はありません）";
+  return {name:"加工-格付小分け",cells:c,cols:[12,16,16,10,10,12,18,10,18]};
+}
+
+function exportApplication(year){
+  try{
+    var sheets=[coverSheet(year),acSheet(year),agSheet()];
+    appData(year).forEach(function(d){sheets.push(ajSheet(d,year));});
+    sheets.push(procFlowSheet(year),procListSheet(year),intakeSheet(year),
+                facilitySheet(),cleanSheet(year),gradeSheet(year));
+    var bytes=makeXlsx(sheets);
+    var blob=new Blob([bytes],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement("a");
+    a.href=url;a.download="yusando-keizoku-shinsei-"+year+".xlsx";a.style.display="none";
+    document.body.appendChild(a);a.click();
+    setTimeout(function(){URL.revokeObjectURL(url);a.remove();},1500);
+    toast(MSG.exported);
+  }catch(e){toast(MSG.exportFail);}
+}
+function renderAppCard(){
+  var sel=document.getElementById("appYear");
+  if(!sel)return;
+  var years=appYears(),cur=sel.value;
+  sel.textContent="";
+  years.forEach(function(y){
+    var o=document.createElement("option");
+    o.value=y;o.textContent=y+"年度（"+(y-1)+"年10月〜"+y+"年9月）";
+    sel.appendChild(o);
+  });
+  if(cur&&years.indexOf(parseInt(cur,10))>-1)sel.value=cur;
+  var box=document.getElementById("appCheck");box.textContent="";
+  var year=parseInt(sel.value,10)||years[0];
+  var data=appData(year),tot=0,worked=0;
+  data.forEach(function(d){tot+=d.total;d.cells.forEach(function(c){if(c.text)worked++;});});
+  var sum=el("p","hint");
+  sum.appendChild(el("span",null,"申請圃場 "+data.length+"件／作業のあった月 "+worked+"／年間収穫量 "+fmtKg(tot)+" kg"));
+  sum.appendChild(el("span","en",data.length+" applied fields · "+worked+" field-months with work · "+fmtKg(tot)+" kg harvested"));
+  box.appendChild(sum);
+  var iss=appIssues(year);
+  if(iss.length){
+    var w=el("p","hint");w.style.color="var(--warn)";w.style.fontWeight="700";
+    w.appendChild(el("span",null,"確認したほうがよい点が "+iss.length+" 件あります："));
+    iss.slice(0,6).forEach(function(x){w.appendChild(el("span",null,"・"+x.ja));});
+    if(iss.length>6)w.appendChild(el("span",null,"…ほか "+(iss.length-6)+" 件（書き出した表の「はじめに」に全部載ります）"));
+    box.appendChild(w);
+  }
+}
+
 /* ---------- ui ---------- */
 var toastTimer=null;
 function toast(m){
@@ -2384,19 +3140,20 @@ function toast(m){
 var currentView="entry";
 function showView(v){
   currentView=v;
-  ["entry","proc","grade","list","master"].forEach(function(k){
+  ["entry","proc","grade","clean","list","master"].forEach(function(k){
     document.getElementById("view-"+k).classList.toggle("hidden",k!==v);
   });
   Array.prototype.forEach.call(document.querySelectorAll(".tab"),function(t){
     t.setAttribute("aria-selected",t.dataset.view===v?"true":"false");
   });
   document.getElementById("savebar").classList.toggle("hidden",
-    v!=="entry"&&v!=="proc"&&v!=="grade");
+    v!=="entry"&&v!=="proc"&&v!=="grade"&&v!=="clean");
   document.getElementById("copyLast").classList.toggle("hidden",v!=="entry");
   if(v==="proc")renderProc();
   if(v==="grade")renderGrade();
+  if(v==="clean")renderClean();
   if(v==="list")renderList();
-  if(v==="master")renderMaster();
+  if(v==="master"){renderMaster();renderAppCard();}
   window.scrollTo(0,0);
 }
 
@@ -2408,6 +3165,7 @@ document.getElementById("date").onchange=function(){draft.date=this.value;update
 document.getElementById("save").onclick=function(){
   if(currentView==="proc")saveProc();
   else if(currentView==="grade")saveGrade();
+  else if(currentView==="clean")saveClean();
   else saveLog();
 };
 document.getElementById("gdate").onchange=function(){gdraft.date=this.value;renderGrade();};
@@ -2488,7 +3246,20 @@ document.getElementById("exportCsv").onclick=function(){
   saveCsv("sagyou-nisshi-field-log.csv",toCsv());
 };
 
-renderEntryChips();updateLot();renderProc();renderGrade();renderList();renderMaster();setStatus();
+document.getElementById("exportCleanCsv").onclick=function(){
+  if(!store.cleans.length){toast(MSG.noLogs);return;}
+  saveCsv("senjou-kiroku-cleaning-log.csv",cleanCsv());
+};
+document.getElementById("cdate").onchange=function(){cdraft.date=this.value;};
+document.getElementById("appYear").onchange=function(){renderAppCard();};
+document.getElementById("exportApp").onclick=function(){
+  var y=parseInt(document.getElementById("appYear").value,10);
+  if(!y){toast(MSG.noLogs);return;}
+  exportApplication(y);
+};
+
+renderEntryChips();updateLot();renderProc();renderGrade();renderClean();renderList();renderMaster();
+renderAppCard();setStatus();
 initCaps();
 })();
 </script>

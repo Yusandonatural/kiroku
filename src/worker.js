@@ -184,7 +184,7 @@ async function push(request, env, member) {
   const stmts = [];
   for (const r of records) {
     if (!r || typeof r.id !== "string" || !/^[A-Za-z0-9_-]{4,64}$/.test(r.id)) { skipped++; continue; }
-    if (!["log", "proc", "grade"].includes(r.kind)) { skipped++; continue; }
+    if (!["log", "proc", "grade", "clean"].includes(r.kind)) { skipped++; continue; }
     const updatedAt = Number(r.updatedAt) || 0;
     if (!updatedAt) { skipped++; continue; }
     const bodyText = JSON.stringify(r.body || {});
@@ -265,7 +265,16 @@ async function calendarFeed(env, token) {
     const f = (masters.fields || []).find((x) => x.id === id);
     return f ? (f.ja || f.en || id) : id;
   };
-  const L = (group, k) => (labels[group] && labels[group][k]) || k;
+  /* fallbacks so a stage added in the app still reads properly in the calendar
+     before the registers have been pushed again */
+  const BUILTIN = {
+    stages: { aracha: "荒茶づくり", finish: "仕上げ加工", sort: "選別", mill: "粉砕" },
+    equip: { aracha_line: "製茶ライン", finish_line: "仕上げライン", sorter: "選別機", mill: "粉砕機",
+             roaster: "焙煎機", packer: "小分け・包装機", container: "保管容器・袋",
+             storage: "保管場所", transport: "運搬車両" },
+  };
+  const L = (group, k) =>
+    (labels[group] && labels[group][k]) || (BUILTIN[group] && BUILTIN[group][k]) || k;
 
   const rows = await env.DB.prepare(
     "SELECT id, kind, date, updated_at, body FROM records WHERE deleted = 0 AND date >= date('now', '-2 years') ORDER BY date"
@@ -299,6 +308,7 @@ async function calendarFeed(env, token) {
       summary = `【加工】${L("stages", b.stage)} ${teas} ${b.out ? b.out + "kg" : ""}`.trim();
       desc.push(`工場: ${L("factories", b.factory)}`);
       desc.push(`投入 ${b.inKg || 0}kg → 製造 ${b.out || 0}kg`);
+      if (b.ext) desc.push(`仕入れ原料: ${b.extName || "—"} ${b.extKg || 0}kg`);
       desc.push(`ロット: ${b.lot || ""}`);
       desc.push(`区分: ${b.organic === "organic" ? "有機" : "有機でない"}`);
     } else if (r.kind === "grade") {
@@ -306,6 +316,12 @@ async function calendarFeed(env, token) {
       summary = `【格付】${teas} ${b.qty ? b.qty + "kg" : ""} ${b.result === "pass" ? "適合" : "不適合"}`.trim();
       desc.push(`原料ロット: ${b.sourceLot || ""} → 格付ロット: ${b.lot || ""}`);
       desc.push(`${b.gram || 0}g × ${b.packs || 0}袋、シール ${b.mark === "seal" ? (b.seals || 0) + "枚" : "印刷済み包材"}`);
+    } else if (r.kind === "clean") {
+      const eq = (b.equip || []).map((k) => L("equip", k)).concat(b.equipOther ? [b.equipOther] : []).join("・");
+      summary = `【洗浄】${eq}${b.prev === "nonorganic" ? "（有機以外からの切替）" : ""}`.trim();
+      desc.push(`場所: ${L("factories", b.factory)}`);
+      if (b.method) desc.push(`方法: ${b.method}`);
+      desc.push(`結果: ${b.result === "redo" ? "再洗浄した" : "残留なしを確認"}`);
     } else continue;
     if (workers) desc.push(`作業者: ${workers}`);
     if (b.memo) desc.push(`メモ: ${b.memo}`);
