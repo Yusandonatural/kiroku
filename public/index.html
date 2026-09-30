@@ -379,6 +379,55 @@ p.secsub .en{display:block;color:var(--faint)}
 #gateMsg{min-height:1.2em;color:var(--danger);font-weight:700}
 .member{font-size:11px;color:var(--muted);white-space:nowrap}
 @media (max-width:420px){.sealsum{grid-template-columns:repeat(2,1fr)}}
+
+/* ---- wide screens (PC) ----
+   The app is built for a phone in the field; on a desktop it keeps the same
+   structure but uses the width: records and registers sit side by side, and
+   the entry forms run in two columns. Anything with chips or a text box keeps
+   the full width so the choices stay on one line. */
+@media (min-width:1000px){
+  .app{max-width:1020px;padding-bottom:132px}
+  .bar{padding:14px 20px 10px}
+  .brandmark{height:23px}
+  .tabs{padding:0 14px}
+  .tab{padding:7px 16px 9px}
+  main{padding:4px 2px 0}
+  .savebar .inner{max-width:1020px;margin:0 auto}
+  /* the log and the registers are lists of independent blocks: two columns */
+  #logList{display:grid;grid-template-columns:1fr 1fr;gap:0 20px;align-items:start}
+  #logList > .hsum,#logList > .btn{grid-column:1/-1}
+  .log .sub .en{display:block}
+  .field > input[type="date"],.field > input[type="number"],.field > select{max-width:320px}
+  /* the registers are very different heights, so pack them instead of
+     lining them up in rows — a grid would leave a column half empty */
+  #view-master{column-count:2;column-gap:20px}
+  #view-master > .card{break-inside:avoid;margin-bottom:16px}
+  .fieldrow,.machinerow{break-inside:avoid}
+}
+/* the two-column forms need :has(); browsers without it keep the phone layout */
+@supports selector(:has(*)){
+  @media (min-width:1000px){
+    #view-entry > .card:first-of-type,
+    #view-proc  > .card:first-of-type,
+    #view-grade > .card:first-of-type,
+    #view-clean > .card:first-of-type{
+      display:grid;grid-template-columns:1fr 1fr;column-gap:30px;align-items:start;
+    }
+    #view-entry > .card:first-of-type > .field:has(.chips),
+    #view-entry > .card:first-of-type > .field:has(textarea),
+    #view-entry > .card:first-of-type > .field:has(.qrow),
+    #view-proc  > .card:first-of-type > .field:has(.chips),
+    #view-proc  > .card:first-of-type > .field:has(textarea),
+    #view-proc  > .card:first-of-type > .field:has(.qrow),
+    #view-grade > .card:first-of-type > .field:has(.chips),
+    #view-grade > .card:first-of-type > .field:has(textarea),
+    #view-grade > .card:first-of-type > .field:has(.qrow),
+    #view-grade > .card:first-of-type > .field:has(#gChecks),
+    #view-clean > .card:first-of-type > .field:has(.chips),
+    #view-clean > .card:first-of-type > .field:has(textarea),
+    #view-clean > .card:first-of-type > .secsub{grid-column:1/-1}
+  }
+}
 </style>
 </head>
 <body>
