@@ -155,6 +155,50 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-
   display:inline-block;letter-spacing:.02em;
 }
 
+/* ---- month calendar under the date fields ---- */
+.datewrap{display:flex;gap:8px;align-items:stretch}
+.datewrap > input{flex:1;min-width:0}
+.calbtn{
+  appearance:none;font:inherit;cursor:pointer;flex:none;border-radius:8px;padding:4px 12px;
+  border:1px solid var(--line2);background:var(--surface);color:var(--ink);line-height:1.25;
+}
+.calbtn .ja{display:block;font-size:13px;font-weight:700}
+.calbtn .en{display:block;font-size:11px;opacity:.8}
+.calbtn[aria-expanded="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-ink)}
+.calbtn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mcal{
+  margin-top:8px;max-width:360px;background:var(--surface);border:1px solid var(--line);
+  border-radius:10px;padding:10px;box-shadow:var(--shadow);
+}
+.mcal .mhead{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.mcal .mtitle{flex:1;text-align:center;font-weight:700;line-height:1.3}
+.mcal .mtitle .en{display:block;font-size:11.5px;font-weight:500;color:var(--muted)}
+.mcal .mnav{
+  appearance:none;font:inherit;font-size:18px;cursor:pointer;width:40px;height:40px;
+  border-radius:8px;border:1px solid var(--line);background:var(--surface2);color:var(--ink);
+}
+.mcal .mgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.mcal .wd{text-align:center;font-size:11px;color:var(--muted);line-height:1.2;padding:2px 0 4px}
+.mcal .wd .en{display:block;font-size:9.5px;opacity:.85}
+.mcal .wd.sun,.mcal .day.sun{color:var(--danger,#B5483B)}
+.mcal .wd.sat,.mcal .day.sat{color:var(--indigo,#41597A)}
+.mcal .day{
+  appearance:none;font:inherit;font-size:15px;cursor:pointer;position:relative;
+  height:42px;border-radius:8px;border:1px solid transparent;background:none;color:var(--ink);
+}
+.mcal .day:hover{background:var(--surface2)}
+.mcal .day.today{border-color:var(--accent)}
+.mcal .day[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:700}
+.mcal .day.has::after{
+  content:"";position:absolute;left:50%;bottom:5px;width:5px;height:5px;margin-left:-2.5px;
+  border-radius:50%;background:var(--accent);
+}
+.mcal .day[aria-pressed="true"].has::after{background:var(--on-accent)}
+.mcal .day:focus-visible,.mcal .mnav:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.mcal .mfoot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px;font-size:11.5px;color:var(--muted)}
+.mcal .mfoot > span > .en{display:block;opacity:.85}
+.mcal .mfoot .btn{padding:6px 12px}
+
 /* ---- buttons ---- */
 .btn{
   appearance:none;font:inherit;font-weight:700;cursor:pointer;border-radius:8px;
@@ -397,7 +441,7 @@ p.secsub .en{display:block;color:var(--faint)}
   #logList{display:grid;grid-template-columns:1fr 1fr;gap:0 20px;align-items:start}
   #logList > .hsum,#logList > .btn{grid-column:1/-1}
   .log .sub .en{display:block}
-  .field > input[type="date"],.field > input[type="number"],.field > select{max-width:320px}
+  .field > input[type="date"],.field > input[type="number"],.field > select,.field > .datewrap{max-width:320px}
   /* the registers are very different heights, so pack them instead of
      lining them up in rows — a grid would leave a column half empty */
   #view-master{column-count:2;column-gap:20px}
@@ -1156,6 +1200,76 @@ function bi(parent,ja,en){
   parent.appendChild(el("span","ja",ja));
   if(en)parent.appendChild(el("span","en",en));
   return parent;
+}
+
+/* ---------- month calendar for a date field ----------
+   Adds a "Calendar" button beside the native date input and a month grid under it.
+   Picking a day writes the input and fires its change handler, so the drafts update
+   exactly as when the native picker is used. Days that already have a record of this
+   kind get a dot. */
+var MONTHS_EN=["January","February","March","April","May","June","July","August","September","October","November","December"];
+var WD_JA=["日","月","火","水","木","金","土"],WD_EN=["Su","Mo","Tu","We","Th","Fr","Sa"];
+function monthCal(inputId,records){
+  var inp=document.getElementById(inputId);
+  var wrap=el("div","datewrap");
+  inp.parentNode.insertBefore(wrap,inp);wrap.appendChild(inp);
+  var btn=bi(el("button","calbtn"),"カレンダー","Calendar");
+  btn.type="button";btn.setAttribute("aria-expanded","false");
+  wrap.appendChild(btn);
+  var box=el("div","mcal hidden");
+  wrap.parentNode.insertBefore(box,wrap.nextSibling);
+  var y,m;
+  function setMonth(){
+    var v=inp.value||today();
+    y=parseInt(v.slice(0,4),10);m=parseInt(v.slice(5,7),10)-1;
+  }
+  function move(d){m+=d;if(m<0){m=11;y--;}if(m>11){m=0;y++;}draw();}
+  function pick(ds){
+    inp.value=ds;
+    inp.dispatchEvent(new Event("change"));
+    close();
+  }
+  function draw(){
+    box.textContent="";
+    var head=el("div","mhead");
+    var prev=el("button","mnav","‹");prev.type="button";prev.setAttribute("aria-label","前の月 / Previous month");
+    prev.onclick=function(){move(-1);};
+    var next=el("button","mnav","›");next.type="button";next.setAttribute("aria-label","次の月 / Next month");
+    next.onclick=function(){move(1);};
+    head.appendChild(prev);
+    head.appendChild(bi(el("div","mtitle"),y+"年"+(m+1)+"月",MONTHS_EN[m]+" "+y));
+    head.appendChild(next);
+    box.appendChild(head);
+    var grid=el("div","mgrid");
+    WD_JA.forEach(function(w,i){
+      grid.appendChild(bi(el("div","wd"+(i===0?" sun":i===6?" sat":"")),w,WD_EN[i]));
+    });
+    var has={};
+    records().forEach(function(r){if(r&&r.date)has[r.date]=true;});
+    var first=new Date(y,m,1).getDay(),days=new Date(y,m+1,0).getDate(),now=today(),any=false;
+    for(var i=0;i<first;i++)grid.appendChild(el("div"));
+    for(var d=1;d<=days;d++){
+      var ds=y+"-"+p2(m+1)+"-"+p2(d),wd=(first+d-1)%7;
+      var b=el("button","day"+(wd===0?" sun":wd===6?" sat":"")+(ds===now?" today":"")+(has[ds]?" has":""),String(d));
+      b.type="button";b.setAttribute("aria-label",ds+(has[ds]?" 記録あり / has a record":""));
+      b.setAttribute("aria-pressed",ds===inp.value?"true":"false");
+      if(has[ds])any=true;
+      b.onclick=(function(ds){return function(){pick(ds);};})(ds);
+      grid.appendChild(b);
+    }
+    box.appendChild(grid);
+    var foot=el("div","mfoot");
+    foot.appendChild(any?bi(el("span"),"・は記録のある日","Dot = day with a record"):el("span"));
+    var tb=bi(el("button","btn ghost"),"今日","Today");tb.type="button";
+    tb.onclick=function(){pick(today());};
+    foot.appendChild(tb);
+    box.appendChild(foot);
+  }
+  function open(){setMonth();draw();box.classList.remove("hidden");btn.setAttribute("aria-expanded","true");}
+  function close(){box.classList.add("hidden");btn.setAttribute("aria-expanded","false");}
+  btn.onclick=function(){if(box.classList.contains("hidden"))open();else close();};
+  box.addEventListener("keydown",function(e){if(e.key==="Escape"){close();btn.focus();}});
+  inp.addEventListener("change",function(){if(!box.classList.contains("hidden")){setMonth();draw();}});
 }
 
 /* ---------- sync (Cloudflare Worker API) ---------- */
@@ -3209,6 +3323,10 @@ function showView(v){
 Array.prototype.forEach.call(document.querySelectorAll(".tab"),function(t){
   t.onclick=function(){showView(t.dataset.view);};
 });
+monthCal("date",function(){return store.logs;});
+monthCal("pdate",function(){return store.procs;});
+monthCal("gdate",function(){return store.grades;});
+monthCal("cdate",function(){return store.cleans;});
 document.getElementById("date").value=draft.date;
 document.getElementById("date").onchange=function(){draft.date=this.value;updateLot();};
 document.getElementById("save").onclick=function(){
