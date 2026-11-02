@@ -243,6 +243,52 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-
 .pill.local{background:var(--warn-soft);color:var(--warn)}
 .empty{text-align:center;color:var(--faint);font-size:13.5px;padding:40px 20px;line-height:1.8}
 
+/* ---- month view on the log tab ---- */
+.mview .mhead{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.mview .mtitle{flex:1;text-align:center;font-weight:700;font-size:16px;line-height:1.3}
+.mview .mtitle .en{display:block;font-size:12px;font-weight:500;color:var(--muted)}
+.mview .mnav{
+  appearance:none;font:inherit;font-size:18px;cursor:pointer;width:42px;height:42px;
+  border-radius:8px;border:1px solid var(--line);background:var(--surface2);color:var(--ink);
+}
+.mview .mnav:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.mgrid2{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
+.mgrid2 .wd{text-align:center;font-size:11px;color:var(--muted);line-height:1.2;padding:2px 0 4px}
+.mgrid2 .wd .en{display:block;font-size:9.5px;opacity:.85}
+.mgrid2 .wd.sun,.mgrid2 .mday.sun .dn{color:var(--danger)}
+.mgrid2 .wd.sat,.mgrid2 .mday.sat .dn{color:var(--indigo)}
+.mday{
+  appearance:none;font:inherit;cursor:pointer;text-align:left;color:var(--ink);
+  min-height:54px;padding:4px 4px 5px;border-radius:7px;border:1px solid var(--line);
+  background:var(--surface);display:flex;flex-direction:column;gap:2px;min-width:0;
+}
+.mday .dn{font-size:13px;font-weight:700;line-height:1.2}
+.mday.today{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.mday[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent)}
+.mday:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+/* phones: two work names per day, then "+n"; wide screens: three */
+.mday .ent{display:block;font-size:9.5px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:clip;
+  border-left:2px solid;padding-left:2px;letter-spacing:-.02em}
+.mday .ent.e3,.mday .more.m3{display:none}
+.mday .more{font-size:9.5px;color:var(--faint);line-height:1.2}
+.k-log{--k:var(--accent)}.k-proc{--k:var(--indigo)}.k-grade{--k:var(--warn)}.k-clean{--k:var(--muted)}
+.mlegend i{background:var(--k)}
+.mday .ent{border-color:var(--k)}
+.mlegend{display:flex;flex-wrap:wrap;gap:6px 14px;margin:10px 0 0;font-size:12px;color:var(--muted)}
+.mlegend span{display:inline-flex;align-items:center;gap:5px}
+.mlegend i{width:9px;height:9px;border-radius:50%;display:inline-block}
+.mview .mdaybox{margin-top:14px}
+.mview .mbtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.mview .mbtns .btn{flex:1 1 200px}
+@media (min-width:700px){
+  .mday{min-height:84px}
+  .mday .ent{font-size:10.5px;line-height:1.35;border-left-width:3px;padding-left:3px;text-overflow:ellipsis;letter-spacing:0}
+  .mday .ent.e3,.mday .more.m3{display:block}
+  .mday .more.m2{display:none}
+}
+/* the printable document (PDF via the browser's print dialog) */
+#printArea{display:none}
+
 /* ---- master ---- */
 .mrow{display:flex;align-items:flex-start;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}
 .mrow .meta,.mrow .x{margin-top:2px}
@@ -472,6 +518,43 @@ p.secsub .en{display:block;color:var(--faint)}
     #view-clean > .card:first-of-type > .secsub{grid-column:1/-1}
   }
 }
+/* ---- print: only the document in #printArea, always black on white ---- */
+@media print{
+  body > *:not(#printArea){display:none!important}
+  html,body{background:#fff!important;color:#000!important}
+  #printArea{display:block;font-family:"Noto Sans JP","Noto Sans",sans-serif;font-size:9pt;color:#000;
+    -webkit-print-color-adjust:exact;print-color-adjust:exact}
+  #printArea .p-en{font-size:7.5pt;color:#555;font-weight:400}
+  #printArea .p-head{border-bottom:1.5pt solid #2F6B4A;padding-bottom:4pt;margin-bottom:6pt}
+  #printArea h1{font-size:15pt;margin:0;line-height:1.3}
+  #printArea .p-head > .p-en{margin:0;font-size:9pt}
+  #printArea .p-meta{margin:2pt 0 0;font-size:8pt;color:#333}
+  #printArea .p-sum{margin:0 0 6pt;font-weight:700}
+  #printArea h2{font-size:11pt;margin:8pt 0 4pt;color:#245239}
+  #printArea .p-none{margin:0 0 4pt;color:#555}
+  #printArea table{border-collapse:collapse;width:100%}
+  #printArea th,#printArea td{border:.5pt solid #888;padding:2pt 3pt;vertical-align:top;text-align:left;
+    white-space:pre-line;word-break:break-word}
+  #printArea th{background:#E2EDE5;font-size:8pt}
+  #printArea th .p-en{display:block}
+  #printArea thead{display:table-header-group}
+  #printArea tr{break-inside:avoid}
+  #printArea .p-sign{margin-top:14pt;font-size:9.5pt}
+  #printArea .p-cal{table-layout:fixed}
+  #printArea .p-cal th{text-align:center}
+  #printArea .p-cal td{height:24mm;font-size:7.5pt;white-space:normal}
+  #printArea .p-cal td.blank{background:#F3F3EF}
+  #printArea .p-cal .dn{font-weight:700;font-size:9pt;margin-bottom:1pt}
+  #printArea .sun{color:#93392F}#printArea .sat{color:#41597A}
+  #printArea .ent{border-left:2pt solid;padding-left:2pt;margin-top:1pt;line-height:1.25}
+  #printArea .k-log{border-color:#2F6B4A}#printArea .k-proc{border-color:#41597A}
+  #printArea .k-grade{border-color:#B07A2A}#printArea .k-clean{border-color:#888}
+  #printArea .p-legend{display:flex;gap:14pt;margin-top:5pt;font-size:8pt}
+  #printArea .p-legend span{border-left-width:6pt;border-left-style:solid;padding-left:3pt}
+  #printArea .p-page{break-after:page}
+  #printArea .p-page:last-child{break-after:auto}
+  #printArea .p-sheet td{font-size:7.5pt;min-width:8mm;height:4.5mm}
+}
 </style>
 </head>
 <body>
@@ -511,6 +594,8 @@ p.secsub .en{display:block;color:var(--faint)}
     <button class="tab" role="tab" aria-selected="false" data-view="clean"><span class="ja">洗浄</span><span class="en">Cleaning</span></button>
     <button class="tab" role="tab" aria-selected="false" data-view="list"><span class="ja">記録</span><span class="en">Log</span></button>
     <button class="tab" role="tab" aria-selected="false" data-view="master"><span class="ja">台帳</span><span class="en">Registers</span></button>
+    <button class="tab" role="tab" aria-selected="false" data-view="pdf"><span class="ja">PDF</span><span class="en">Export</span></button>
+    <button class="tab" role="tab" aria-selected="false" data-view="import"><span class="ja">CSV取込</span><span class="en">Import</span></button>
   </div>
 </header>
 
@@ -781,7 +866,78 @@ p.secsub .en{display:block;color:var(--faint)}
 
   <!-- ============ LOG ============ -->
   <section id="view-list" class="hidden">
+    <div class="card mview" id="monthView">
+      <div class="mhead">
+        <button class="mnav" type="button" id="mPrev" aria-label="前の月 / Previous month">‹</button>
+        <div class="mtitle" id="mTitle"></div>
+        <button class="mnav" type="button" id="mNext" aria-label="次の月 / Next month">›</button>
+      </div>
+      <div class="mgrid2" id="mGrid"></div>
+      <div class="mlegend">
+        <span class="k-log"><i></i>栽培 Field</span>
+        <span class="k-proc"><i></i>加工 Processing</span>
+        <span class="k-grade"><i></i>格付 Grading</span>
+        <span class="k-clean"><i></i>洗浄 Cleaning</span>
+      </div>
+      <div class="mdaybox" id="mDay"></div>
+      <div class="mbtns">
+        <button class="btn" type="button" id="pdfMonth"><span class="ja">この月の作業記録をPDFに</span><span class="en">This month's records as PDF</span></button>
+        <button class="btn" type="button" id="pdfCal"><span class="ja">この月のカレンダーをPDFに</span><span class="en">This month's calendar as PDF</span></button>
+      </div>
+      <p class="hint">印刷の画面が開きます。パソコンは「PDFとして保存」、iPhoneは右上の共有ボタン →「ファイルに保存」でPDFになります。<span class="en">The print screen opens. On a computer choose "Save as PDF"; on an iPhone tap Share (top right) → "Save to Files".</span></p>
+    </div>
     <div id="logList"></div>
+  </section>
+
+  <!-- ============ PDF ============ -->
+  <section id="view-pdf" class="hidden">
+    <div class="card">
+      <h2 class="sec"><span class="ja">月ごとのPDF</span><span class="en">Monthly PDF</span></h2>
+      <div class="mview">
+        <div class="mhead">
+          <button class="mnav" type="button" id="xPrev" aria-label="前の月 / Previous month">‹</button>
+          <div class="mtitle" id="xTitle"></div>
+          <button class="mnav" type="button" id="xNext" aria-label="次の月 / Next month">›</button>
+        </div>
+      </div>
+      <div class="field">
+        <span class="lb"><span class="ja">入れる記録</span><span class="en">Records to include</span></span>
+        <div class="chips" id="xKinds"></div>
+      </div>
+      <p class="hint" id="xCount"></p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+        <button class="btn primary" type="button" id="xMonth"><span class="ja">作業記録をPDFに</span><span class="en">Work records as PDF</span></button>
+        <button class="btn" type="button" id="xCal"><span class="ja">カレンダーをPDFに</span><span class="en">Calendar as PDF</span></button>
+      </div>
+    </div>
+    <div class="card">
+      <h2 class="sec"><span class="ja">年度のPDF</span><span class="en">Yearly PDF</span></h2>
+      <p class="secsub">申請年度(10月〜翌9月)の1年分です。検査や継続申請の控えに使えます。<span class="en">One application year, October to September — for inspections and as a copy of the renewal application.</span></p>
+      <div class="field">
+        <label class="lb" for="xYear"><span class="ja">申請年度</span><span class="en">Application year</span></label>
+        <select id="xYear"></select>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+        <button class="btn primary" type="button" id="xYearRec"><span class="ja">1年分の作業記録をPDFに</span><span class="en">The year's records as PDF</span></button>
+        <button class="btn" type="button" id="xApp"><span class="ja">継続申請書(下書き)をPDFに</span><span class="en">Application draft as PDF</span></button>
+      </div>
+      <p class="hint">作業記録の種類は、上の「入れる記録」で選んだものになります。<span class="en">The yearly records use the kinds chosen under "Records to include" above.</span></p>
+    </div>
+    <p class="note">ボタンを押すと印刷の画面が開きます。パソコンは「PDFとして保存」、iPhoneは右上の共有ボタン →「ファイルに保存」でPDFになります。<span class="en">Each button opens the print screen. On a computer choose "Save as PDF"; on an iPhone tap Share (top right) → "Save to Files".</span></p>
+  </section>
+
+  <!-- ============ CSV IMPORT ============ -->
+  <section id="view-import" class="hidden">
+    <div class="card">
+      <h2 class="sec"><span class="ja">CSVをまとめて取り込む</span><span class="en">Import CSV files</span></h2>
+      <p class="secsub">このアプリで書き出したCSV(作業日誌・加工・格付・洗浄)を、何枚でもまとめて選べます。種類は自動で見分け、取り込む前に件数を確認します。<span class="en">Pick any number of the CSV files this app exports (field log, processing, grading, cleaning) at once. Each file's kind is detected automatically, and the counts are shown for confirmation before anything is added.</span></p>
+      <label class="btn primary" style="cursor:pointer;display:block"><span class="ja">CSVファイルを選ぶ</span><span class="en">Choose CSV files</span><input type="file" id="importCsvTab" accept=".csv,text/csv" multiple style="display:none"></label>
+      <ul class="hint" style="padding-left:1.2em;margin-top:12px">
+        <li><span class="ja">すでにある記録(同じロット番号、または同じ日・同じ内容)は飛ばします。同じファイルを2回取り込んでも増えません。</span><span class="en">Records that already exist — same lot number, or same day and same content — are skipped, so importing a file twice adds nothing.</span></li>
+        <li><span class="ja">Excelで列を並べ替えたり足したりしても読めます。1行目の見出し(「日付 / Date」など)は消さないでください。</span><span class="en">Columns may be moved or added in Excel; keep the header row ("日付 / Date" and so on).</span></li>
+        <li><span class="ja">取り込んだ記録は手で入力した記録と同じ扱いで、次の同期でサーバーに送られます。</span><span class="en">Imported records are treated like hand-entered ones and go to the server on the next sync.</span></li>
+      </ul>
+    </div>
   </section>
 
   <!-- ============ REGISTERS ============ -->
@@ -887,6 +1043,10 @@ p.secsub .en{display:block;color:var(--faint)}
         <button class="btn" id="exportGradeCsv"><span class="ja">格付記録をCSVで書き出す</span><span class="en">Export the grading log as CSV</span></button>
         <button class="btn" id="exportCleanCsv"><span class="ja">洗浄記録をCSVで書き出す</span><span class="en">Export the cleaning log as CSV</span></button>
       </div>
+      <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
+        <label class="btn primary" style="cursor:pointer"><span class="ja">CSVをまとめて取り込む</span><span class="en">Import CSV files</span><input type="file" id="importCsv" accept=".csv,text/csv" multiple style="display:none"></label>
+      </div>
+      <p class="hint">上のボタンで書き出したCSV(作業日誌・加工・格付・洗浄)を、何枚でもまとめて選べます。種類は自動で見分けます。すでにある記録(同じロット番号、または同じ日・同じ内容)は飛ばすので、同じファイルを2回取り込んでも増えません。<span class="en">Pick any number of the CSV files exported above (field log, processing, grading, cleaning) at once; each file's kind is detected automatically. Records that already exist — same lot number, or same day and same content — are skipped, so importing a file twice adds nothing.</span></p>
       <div class="hidden">
       </div>
     </div>
@@ -901,6 +1061,7 @@ p.secsub .en{display:block;color:var(--faint)}
       <div id="appCheck"></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
         <button class="btn primary" id="exportApp"><span class="ja">継続申請書(下書き)を書き出す</span><span class="en">Export the application draft</span></button>
+        <button class="btn" id="pdfApp"><span class="ja">PDFで書き出す</span><span class="en">Export as PDF</span></button>
       </div>
       <p class="hint">押印・講習会番号・出荷先(A-I)・種苗(A-K/L/M)など、記録から作れない欄は空のままです。書き出したあとに確認して埋めてください。<span class="en">Seals, training certificate numbers, buyers (A-I) and seed and seedling sheets (A-K/L/M) cannot come from the records and are left blank — fill them in after exporting.</span></p>
     </div>
@@ -915,6 +1076,7 @@ p.secsub .en{display:block;color:var(--faint)}
 </div>
 </div>
 <div class="toast" id="toast"></div>
+<div id="printArea"></div>
 
 <script>
 (function(){
@@ -1736,6 +1898,7 @@ function harvestCard(){
   return c;
 }
 function renderList(){
+  renderMonthView();
   var wrap=document.getElementById("logList");wrap.textContent="";
   var hs=harvestCard();if(hs)wrap.appendChild(hs);
   if(!store.logs.length&&!store.procs.length&&!store.grades.length&&!store.cleans.length){
@@ -2832,6 +2995,280 @@ function cleanCsv(){
   }).join("\r\n");
 }
 
+/* ================= csv import =================
+   Reads back the four CSV files this app writes. Columns are found by their
+   header, so a file edited in Excel (columns moved, extra columns) still reads.
+   New records are saved like a hand-entered one (synced:false) and go to the
+   server on the next sync. */
+function parseCsv(text){
+  text=String(text).replace(/^﻿/,"");
+  var rows=[],row=[],cell="",q=false,i,ch;
+  for(i=0;i<text.length;i++){
+    ch=text[i];
+    if(q){
+      if(ch==='"'){if(text[i+1]==='"'){cell+='"';i++;}else q=false;}
+      else cell+=ch;
+    }else if(ch==='"')q=true;
+    else if(ch===","){row.push(cell);cell="";}
+    else if(ch==="\n"||ch==="\r"){
+      if(ch==="\r"&&text[i+1]==="\n")i++;
+      row.push(cell);cell="";
+      if(row.some(function(c){return c!=="";}))rows.push(row);
+      row=[];
+    }else cell+=ch;
+  }
+  row.push(cell);if(row.some(function(c){return c!=="";}))rows.push(row);
+  return rows;
+}
+/* header lookup: a column matches when its header starts with the Japanese label */
+function csvCols(head){
+  return function(ja){
+    for(var i=0;i<head.length;i++){if(head[i].trim().indexOf(ja)===0)return i;}
+    return -1;
+  };
+}
+function csvKind(head){
+  var h=head.join("|");
+  if(h.indexOf("圃場コード")>-1)return "log";
+  if(h.indexOf("格付ロット")>-1)return "grade";
+  if(h.indexOf("工程")>-1&&h.indexOf("製造量")>-1)return "proc";
+  if(h.indexOf("洗浄方法")>-1)return "clean";
+  return null;
+}
+function num(s){var v=parseFloat(String(s||"").replace(/,/g,""));return isNaN(v)?0:v;}
+/* "荒茶づくり / Making aracha" or "荒茶づくり" → the dictionary entry's key */
+function keyOf(list,s){
+  s=String(s||"").trim();if(!s)return "";
+  var ja=s.split(" / ")[0].trim();
+  for(var i=0;i<list.length;i++){
+    if(list[i].ja===ja||list[i].ja===s||list[i].en===s||list[i].k===s)return list[i].k;
+  }
+  return "";
+}
+function fieldIdByName(name){
+  name=String(name||"").trim();if(!name)return "";
+  for(var i=0;i<store.fields.length;i++){
+    var f=store.fields[i];if(f.id===name||f.ja===name||f.en===name)return f.id;
+  }
+  return "";
+}
+function machineIdsByNames(s){
+  return String(s||"").split(/[、,]/).map(function(n){
+    n=n.trim();if(!n)return "";
+    for(var i=0;i<store.machines.length;i++){
+      var m=store.machines[i];if(m.ja===n||m.en===n||m.id===n)return m.id;
+    }
+    return "";
+  }).filter(Boolean);
+}
+/* workers are written "礒﨑 遼太郎 / Isozaki / ジェフ / Jeff": each worker itself
+   contains " / ", so pick out the names the app knows, longest first */
+function workersOf(s){
+  s=String(s||"").trim();if(!s)return [];
+  var known=(store.workers||[]).slice().sort(function(a,b){return b.length-a.length;});
+  var found=[],rest=s;
+  known.forEach(function(w){
+    var at=rest.indexOf(w);
+    if(at>-1){found.push({w:w,at:s.indexOf(w)});rest=rest.slice(0,at)+"\u0000"+rest.slice(at+w.length);}
+  });
+  var left=rest.split("\u0000").join(" ").split(" / ").map(function(x){return x.trim();}).filter(Boolean);
+  found.sort(function(a,b){return a.at-b.at;});
+  var out=found.map(function(x){return x.w;});
+  /* an unknown name written "日本語 / English" is one person, not two */
+  for(var i=0;i<left.length;i+=2)out.push(left[i+1]?left[i]+" / "+left[i+1]:left[i]);
+  return out;
+}
+function teasOf(s){
+  return String(s||"").split(/\s+/).map(function(t){return keyOf(TEAS,t);}).filter(Boolean);
+}
+function logSig(l){return [l.date,(l.fieldIds||[]).slice().sort().join(","),(l.tasks||[]).join(","),l.memo||""].join("|");}
+function cleanSig(c){return [c.date,c.factory,(c.equip||[]).slice().sort().join(","),c.equipOther||"",c.method||""].join("|");}
+
+function csvLogs(rows){
+  var col=csvCols(rows[0]),C={
+    date:col("日付"),code:col("圃場コード"),fja:col("圃場 /"),work:col("作業内容"),who:col("作業者"),
+    wea:col("天候"),mac:col("使用機械"),inp:col("資材"),kg:col("収穫量"),lot:col("収穫ロット"),
+    st:col("開始"),en:col("終了"),hr:col("作業時間"),cl:col("洗浄"),memo:col("メモ")};
+  var get=function(r,k){return C[k]>-1?(r[C[k]]||"").trim():"";};
+  var out=[],cur=null,curKey=null;
+  rows.slice(1).forEach(function(r){
+    var date=get(r,"date");if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return;
+    /* one log was written as one row per field: rows that agree on everything
+       except the field, its weight and its lot belong together */
+    var key=[date,get(r,"work"),get(r,"who"),get(r,"wea"),get(r,"mac"),get(r,"inp"),
+             get(r,"st"),get(r,"en"),get(r,"hr"),get(r,"cl"),get(r,"memo")].join("\u0001");
+    if(key!==curKey){
+      var inp=get(r,"inp");
+      cur={kind:"log",date:date,fieldIds:[],
+        tasks:get(r,"work").split(/\s+/).filter(Boolean).map(taskKey),
+        workers:workersOf(get(r,"who")),weather:keyOf(WEATHER,get(r,"wea")),
+        machineIds:machineIdsByNames(get(r,"mac")),
+        material:inp&&inp!=="なし"&&inp!=="none"?"used":"none",
+        materialNote:inp&&inp!=="なし"&&inp!=="使用あり"&&inp!=="none"?inp:"",
+        qtyByField:{},lots:{},startTime:get(r,"st"),endTime:get(r,"en"),hours:get(r,"hr"),
+        cleaning:get(r,"cl"),memo:get(r,"memo")};
+      out.push(cur);curKey=key;
+    }
+    var id=get(r,"code")||fieldIdByName(get(r,"fja"));
+    if(id&&cur.fieldIds.indexOf(id)<0)cur.fieldIds.push(id);
+    if(id&&get(r,"kg")!=="")cur.qtyByField[id]=String(num(get(r,"kg")));
+    if(id&&get(r,"lot"))cur.lots[id]=get(r,"lot");
+  });
+  out.forEach(function(l){
+    var tot=0;Object.keys(l.qtyByField).forEach(function(k){tot+=num(l.qtyByField[k]);});
+    l.qty=tot?String(tot):"";
+    if(!l.startTime)delete l.startTime;if(!l.endTime)delete l.endTime;
+    if(!l.hours)delete l.hours;if(!l.cleaning)delete l.cleaning;
+  });
+  return out;
+}
+function factoryKey(s){
+  var ja=String(s||"").split(" / ")[0].trim();
+  for(var i=0;i<store.factories.length;i++){
+    var f=store.factories[i];if(f.ja===ja||f.k===ja||f.en===s)return f.k;
+  }
+  return (store.factories[0]||FACTORY_SEED[0]).k;
+}
+function csvProcs(rows){
+  var col=csvCols(rows[0]),C={
+    date:col("日付"),stage:col("工程"),lot:col("ロット /"),fac:col("工場"),org:col("有機区分"),
+    tea:col("お茶の種類"),src:col("原料の茶畑"),par:col("原料ロット"),ext:col("仕入れ原料"),
+    extKg:col("仕入れ量"),inKg:col("投入量"),out:col("製造量"),who:col("作業者"),memo:col("メモ")};
+  var get=function(r,k){return C[k]>-1?(r[C[k]]||"").trim():"";};
+  var out=[];
+  rows.slice(1).forEach(function(r){
+    var date=get(r,"date");if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return;
+    var stage=keyOf(STAGES,get(r,"stage"))||"aracha",ext=get(r,"ext");
+    var p={kind:"proc",date:date,stage:stage,lot:get(r,"lot"),factory:factoryKey(get(r,"fac")),
+      organic:keyOf(ORGANIC,get(r,"org"))||"organic",teas:teasOf(get(r,"tea")),
+      fieldIds:stage==="aracha"?get(r,"src").split(/\s+/).map(fieldIdByName).filter(Boolean):[],
+      leaf:{},parentLots:get(r,"par").split(/\s+/).filter(Boolean),
+      ext:!!ext&&stage!=="aracha",extName:stage!=="aracha"&&ext&&ext!=="仕入れ / bought in"?ext:"",
+      extKg:num(get(r,"extKg")),inKg:num(get(r,"inKg")),out:num(get(r,"out")),
+      workers:workersOf(get(r,"who")),memo:get(r,"memo")};
+    out.push(p);
+  });
+  return out;
+}
+function csvGrades(rows){
+  var col=csvCols(rows[0]),C={
+    date:col("格付日"),lot:col("格付ロット"),src:col("原料ロット"),fld:col("茶畑"),tea:col("お茶の種類"),
+    gram:col("内容量"),packs:col("袋数"),qty:col("格付数量"),mark:col("マーク"),seals:col("シール枚数"),
+    res:col("判定"),who:col("格付担当"),chk:col("確認項目"),memo:col("メモ")};
+  var get=function(r,k){return C[k]>-1?(r[C[k]]||"").trim():"";};
+  var out=[];
+  rows.slice(1).forEach(function(r){
+    var date=get(r,"date");if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return;
+    var chk=get(r,"chk"),mark=get(r,"mark").indexOf("シール")===0||get(r,"mark")==="seal"?"seal":"printed";
+    out.push({kind:"grade",date:date,lot:get(r,"lot"),sourceLot:get(r,"src"),
+      fieldIds:get(r,"fld").split(/\s+/).map(fieldIdByName).filter(Boolean),teas:teasOf(get(r,"tea")),
+      gram:num(get(r,"gram")),packs:num(get(r,"packs")),qty:num(get(r,"qty")),mark:mark,
+      seals:mark==="seal"?num(get(r,"seals")):0,
+      result:get(r,"res").indexOf("不適合")===0?"fail":"pass",workers:workersOf(get(r,"who")),
+      checks:GRADE_CHECKS.filter(function(c){return chk.indexOf(c.ja)>-1;}).map(function(c){return c.k;}),
+      memo:get(r,"memo")});
+  });
+  return out;
+}
+function csvCleans(rows){
+  var col=csvCols(rows[0]),C={
+    date:col("日付"),fac:col("場所"),eq:col("設備"),prev:col("直前"),meth:col("洗浄方法"),
+    res:col("結果"),who:col("確認者"),memo:col("メモ")};
+  var get=function(r,k){return C[k]>-1?(r[C[k]]||"").trim():"";};
+  var out=[];
+  rows.slice(1).forEach(function(r){
+    var date=get(r,"date");if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return;
+    var equip=[],other=[];
+    get(r,"eq").split(/\s+/).filter(Boolean).forEach(function(n){
+      var k=keyOf(EQUIP,n);if(k)equip.push(k);else other.push(n);
+    });
+    out.push({kind:"clean",date:date,factory:factoryKey(get(r,"fac")),equip:equip,equipOther:other.join(" "),
+      prev:keyOf(PREV,get(r,"prev"))||"nonorganic",methods:[],method:get(r,"meth"),
+      result:keyOf(CRESULT,get(r,"res"))||"ok",workers:workersOf(get(r,"who")),memo:get(r,"memo")});
+  });
+  return out;
+}
+/* turn parsed rows into new records, dropping what is already in the store */
+function csvPlan(files){
+  var plan={log:[],proc:[],grade:[],clean:[],dup:0,unknown:[]};
+  var haveLots={},haveLog={},haveClean={},lotToId={};
+  store.procs.forEach(function(p){if(p.lot){haveLots[p.lot]=true;lotToId[p.lot]=p.id;}});
+  store.grades.forEach(function(g){if(g.lot)haveLots[g.lot]=true;});
+  store.logs.forEach(function(l){haveLog[logSig(l)]=true;});
+  store.cleans.forEach(function(c){haveClean[cleanSig(c)]=true;});
+  var byKind={log:[],proc:[],grade:[],clean:[]};
+  files.forEach(function(f){
+    var rows=parseCsv(f.text),k=rows.length?csvKind(rows[0]):null;
+    if(!k){plan.unknown.push(f.name);return;}
+    byKind[k].push(rows);
+  });
+  var stamp=Date.now(),n=0;
+  var fin=function(o){o.id=uid();o.updatedAt=stamp+(n++);o.synced=false;o.imported="csv";return o;};
+  byKind.log.forEach(function(rows){
+    csvLogs(rows).forEach(function(l){
+      var s=logSig(l);if(haveLog[s]){plan.dup++;return;}
+      haveLog[s]=true;plan.log.push(fin(l));
+    });
+  });
+  /* processing first, in date order, so later stages can find their parent lots */
+  var procs=[];
+  byKind.proc.forEach(function(rows){procs=procs.concat(csvProcs(rows));});
+  procs.sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:0;});
+  procs.forEach(function(p){
+    if(p.lot&&haveLots[p.lot]){plan.dup++;return;}
+    fin(p);
+    if(!p.lot)p.lot=procLotFor(p.stage,p.organic,p.date,nextSeq(p.stage,p.date)+plan.proc.length);
+    haveLots[p.lot]=true;lotToId[p.lot]=p.id;plan.proc.push(p);
+  });
+  plan.proc.forEach(function(p){
+    p.parents=(p.parentLots||[]).map(function(l){return lotToId[l];}).filter(Boolean);
+    delete p.parentLots;
+  });
+  byKind.grade.forEach(function(rows){
+    csvGrades(rows).forEach(function(g){
+      if(g.lot&&haveLots[g.lot]){plan.dup++;return;}
+      fin(g);g.procId=lotToId[g.sourceLot]||"";
+      if(!g.lot)g.lot=gradeLotFor(g.date,nextGradeSeq(g.date)+plan.grade.length);
+      haveLots[g.lot]=true;plan.grade.push(g);
+    });
+  });
+  byKind.clean.forEach(function(rows){
+    csvCleans(rows).forEach(function(c){
+      var s=cleanSig(c);if(haveClean[s]){plan.dup++;return;}
+      haveClean[s]=true;plan.clean.push(fin(c));
+    });
+  });
+  return plan;
+}
+function importCsvFiles(list){
+  var files=[],left=list.length;
+  if(!left)return;
+  Array.prototype.forEach.call(list,function(f){
+    var rd=new FileReader();
+    rd.onload=function(){files.push({name:f.name,text:rd.result});if(--left===0)done();};
+    rd.onerror=function(){files.push({name:f.name,text:""});if(--left===0)done();};
+    rd.readAsText(f,"utf-8");
+  });
+  function done(){
+    var plan;
+    try{plan=csvPlan(files);}catch(e){toast({ja:"CSVを読めませんでした",en:"Could not read the CSV"});return;}
+    var total=plan.log.length+plan.proc.length+plan.grade.length+plan.clean.length;
+    var notes=(plan.dup?"\n\nすでにある記録 "+plan.dup+"件は飛ばします。\n"+plan.dup+" already recorded — skipped.":"")
+      +(plan.unknown.length?"\n\n種類が分からないファイル(読みません) / Not recognised, skipped:\n"+plan.unknown.join("\n"):"");
+    if(!total){
+      alert("取り込める新しい記録はありませんでした。\nNo new records to import."+notes);
+      return;
+    }
+    var lines="栽培 "+plan.log.length+"件・加工 "+plan.proc.length+"件・格付 "+plan.grade.length+"件・洗浄 "+plan.clean.length+"件"
+      +"\nField "+plan.log.length+" · Processing "+plan.proc.length+" · Grading "+plan.grade.length+" · Cleaning "+plan.clean.length;
+    if(!confirm("次の記録を取り込みます。よろしいですか？\nImport these records?\n\n"+lines+notes))return;
+    store.logs=store.logs.concat(plan.log);store.procs=store.procs.concat(plan.proc);
+    store.grades=store.grades.concat(plan.grade);store.cleans=store.cleans.concat(plan.clean);
+    persist();scheduleSync();setStatus();renderList();renderMaster();renderProc();renderGrade();renderAppCard();
+    toast({ja:total+"件を取り込みました",en:"Imported "+total+" records"});
+  }
+}
+
 /* ================= renewal application (継続申請書) =================
    The A-J sheet is a fixed grid: months run across columns B..M (Oct→Sep),
    row 14 carries the work done, row 23 the harvest, and rows 28/36 the plan
@@ -3246,13 +3683,16 @@ function gradeSheet(year){
   return {name:"加工-格付小分け",cells:c,cols:[12,16,16,10,10,12,18,10,18]};
 }
 
+function appSheets(year){
+  var sheets=[coverSheet(year),acSheet(year),agSheet()];
+  appData(year).forEach(function(d){sheets.push(ajSheet(d,year));});
+  sheets.push(procFlowSheet(year),procListSheet(year),intakeSheet(year),
+              facilitySheet(),cleanSheet(year),gradeSheet(year));
+  return sheets;
+}
 function exportApplication(year){
   try{
-    var sheets=[coverSheet(year),acSheet(year),agSheet()];
-    appData(year).forEach(function(d){sheets.push(ajSheet(d,year));});
-    sheets.push(procFlowSheet(year),procListSheet(year),intakeSheet(year),
-                facilitySheet(),cleanSheet(year),gradeSheet(year));
-    var bytes=makeXlsx(sheets);
+    var bytes=makeXlsx(appSheets(year));
     var blob=new Blob([bytes],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
     var url=URL.createObjectURL(blob);
     var a=document.createElement("a");
@@ -3291,6 +3731,293 @@ function renderAppCard(){
   }
 }
 
+/* ---------- month view (log tab) ----------
+   A calendar of every record kind for one month. Tapping a day lists that day's
+   records under it with the same cards as the list below. */
+var KIND_LABEL={log:{ja:"栽培",en:"Field"},proc:{ja:"加工",en:"Processing"},
+                grade:{ja:"格付",en:"Grading"},clean:{ja:"洗浄",en:"Cleaning"}};
+var mvY=null,mvM=null,mvSel=null;
+function recordsOn(date){
+  var out=[];
+  store.logs.forEach(function(o){if(o.date===date)out.push({kind:"log",o:o});});
+  store.procs.forEach(function(o){if(o.date===date)out.push({kind:"proc",o:o});});
+  store.grades.forEach(function(o){if(o.date===date)out.push({kind:"grade",o:o});});
+  store.cleans.forEach(function(o){if(o.date===date)out.push({kind:"clean",o:o});});
+  return out;
+}
+/* every record dated from..to (inclusive, YYYY-MM-DD), oldest first */
+function recordsBetween(from,to){
+  var pick=function(l){
+    return l.filter(function(o){return o.date&&o.date>=from&&o.date<=to;})
+            .sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:(a.updatedAt||0)-(b.updatedAt||0);});
+  };
+  return {log:pick(store.logs),proc:pick(store.procs),grade:pick(store.grades),clean:pick(store.cleans)};
+}
+function monthRange(y,m){return [y+"-"+p2(m+1)+"-01",y+"-"+p2(m+1)+"-"+p2(new Date(y,m+1,0).getDate())];}
+/* one short line per record for the calendar cells */
+function shortLabel(kind,o){
+  if(kind==="log")return (o.tasks||[]).map(function(k){return taskOf(k).ja;}).join("・")||"作業";
+  if(kind==="proc")return stageOf(o.stage).ja+((o.teas||[]).length?" "+o.teas.map(function(k){return teaOf(k).ja;}).join("・"):"");
+  if(kind==="grade")return "格付 "+(o.teas||[]).map(function(k){return teaOf(k).ja;}).join("・");
+  return "洗浄 "+cleanEquipNames(o).join("・");
+}
+function cardFor(item){
+  return item.kind==="log"?logCard(item.o):item.kind==="proc"?procCard(item.o)
+        :item.kind==="clean"?cleanCard(item.o):gradeCard(item.o);
+}
+function renderMonthView(){
+  if(mvY===null){var t=today();mvY=+t.slice(0,4);mvM=+t.slice(5,7)-1;}
+  var title=document.getElementById("mTitle");title.textContent="";
+  bi(title,mvY+"年"+(mvM+1)+"月",MONTHS_EN[mvM]+" "+mvY);
+  var grid=document.getElementById("mGrid");grid.textContent="";
+  WD_JA.forEach(function(w,i){
+    grid.appendChild(bi(el("div","wd"+(i===0?" sun":i===6?" sat":"")),w,WD_EN[i]));
+  });
+  var first=new Date(mvY,mvM,1).getDay(),days=new Date(mvY,mvM+1,0).getDate(),now=today();
+  for(var i=0;i<first;i++)grid.appendChild(el("div"));
+  for(var d=1;d<=days;d++){
+    var ds=mvY+"-"+p2(mvM+1)+"-"+p2(d),wd=(first+d-1)%7,recs=recordsOn(ds);
+    var b=el("button","mday"+(wd===0?" sun":wd===6?" sat":"")+(ds===now?" today":""));
+    b.type="button";b.setAttribute("aria-pressed",ds===mvSel?"true":"false");
+    b.setAttribute("aria-label",ds+" "+recs.length+"件 / records");
+    b.appendChild(el("span","dn",String(d)));
+    recs.slice(0,3).forEach(function(r,i){
+      b.appendChild(el("span","ent k-"+r.kind+(i===2?" e3":""),shortLabel(r.kind,r.o)));
+    });
+    if(recs.length>2)b.appendChild(el("span","more m2","+"+(recs.length-2)));
+    if(recs.length>3)b.appendChild(el("span","more m3","+"+(recs.length-3)));
+    b.onclick=(function(ds){return function(){mvSel=mvSel===ds?null:ds;renderMonthView();};})(ds);
+    grid.appendChild(b);
+  }
+  var box=document.getElementById("mDay");box.textContent="";
+  if(mvSel&&mvSel.slice(0,7)===mvY+"-"+p2(mvM+1)){
+    var recs2=recordsOn(mvSel);
+    var h=el("p","dayhead");
+    h.appendChild(el("span",null,fmtDate(mvSel)));
+    h.appendChild(el("span","n",recs2.length+" 件 / records"));
+    box.appendChild(h);
+    if(!recs2.length){
+      var e=el("p","hint");bi(e,"この日の記録はありません。","No records on this day.");box.appendChild(e);
+    }
+    recs2.forEach(function(r){box.appendChild(cardFor(r));});
+  }
+}
+function moveMonth(n){
+  mvM+=n;if(mvM<0){mvM=11;mvY--;}if(mvM>11){mvM=0;mvY++;}
+  mvSel=null;renderMonthView();
+}
+
+/* ---------- printable documents (saved as PDF from the print dialog) ----------
+   The document is built into #printArea; print CSS hides everything else. No
+   library: the browser's own "Save as PDF" makes the file, which also works offline. */
+function printDoc(fileTitle,landscape,build){
+  var area=document.getElementById("printArea");area.textContent="";
+  build(area);
+  var st=document.getElementById("pageStyle");
+  if(!st){st=document.createElement("style");st.id="pageStyle";document.head.appendChild(st);}
+  st.textContent="@page{size:A4 "+(landscape?"landscape":"portrait")+";margin:10mm}";
+  var oldTitle=document.title;document.title=fileTitle;
+  var done=function(){document.title=oldTitle;area.textContent="";window.removeEventListener("afterprint",done);};
+  window.addEventListener("afterprint",done);
+  setTimeout(function(){window.print();},50);
+}
+function pHead(area,ja,en,sub){
+  var h=el("div","p-head");
+  h.appendChild(el("h1",null,ja));
+  h.appendChild(el("p","p-en",en));
+  var m=el("p","p-meta",APP_ORG+"　認定番号 "+APP_CERT+(sub?"　"+sub:"")+"　出力日 "+today());
+  h.appendChild(m);
+  area.appendChild(h);
+}
+function pTable(heads,rows){
+  var t=el("table","p-table"),th=el("thead"),tr=el("tr");
+  heads.forEach(function(h){var c=el("th");c.appendChild(el("span",null,h[0]));c.appendChild(el("span","p-en",h[1]));tr.appendChild(c);});
+  th.appendChild(tr);t.appendChild(th);
+  var tb=el("tbody");
+  rows.forEach(function(r){
+    var row=el("tr");
+    r.forEach(function(v){row.appendChild(el("td",null,v==null?"":String(v)));});
+    tb.appendChild(row);
+  });
+  t.appendChild(tb);
+  return t;
+}
+function wNames(list){return (list||[]).map(function(w){return w.split("/")[0].trim();}).join("、");}
+var pLongDates=false;  /* a document spanning several months shows the year on each date */
+function mdOf(date){
+  var p=date.split("-");
+  return (pLongDates?(+p[0])+"/":"")+(+p[1])+"/"+(+p[2])+" ("+WD_JA[new Date(+p[0],+p[1]-1,+p[2]).getDay()]+")";
+}
+function logRow(l){
+  var qbf=l.qtyByField||{},q=Object.keys(qbf).map(function(id){
+    return (fieldOf(id).ja||id)+" "+fmtKg(parseFloat(qbf[id])||0)+"kg"+(l.lots&&l.lots[id]?" "+l.lots[id]:"");
+  }).join("\n");
+  var t=[];
+  if(l.startTime)t.push(l.startTime+(l.endTime?"〜"+l.endTime:""));
+  if(l.hours)t.push(l.hours+"時間");
+  return [mdOf(l.date),(l.tasks||[]).map(function(k){return taskOf(k).ja;}).join("・"),
+    joinJa(l.fieldIds||[],fieldOf),wNames(l.workers),weatherOf(l.weather).ja+(t.length?"\n"+t.join(" "):""),
+    joinJa(l.machineIds||[],machineOf),l.material==="used"?(l.materialNote||"使用あり"):"なし",q,l.memo||""];
+}
+function procRow(p){
+  var src=procFields(p).map(function(id){return fieldOf(id).ja;}).join("、");
+  if(p.ext)src+=(src?"\n":"")+"仕入れ "+(p.extName||"")+(p.extKg?" "+fmtKg(p.extKg)+"kg":"");
+  return [mdOf(p.date),stageOf(p.stage).ja+"\n"+(p.teas||[]).map(function(k){return teaOf(k).ja;}).join("・"),
+    factoryOf(p.factory).ja,src,fmtKg(p.inKg||0)+" → "+fmtKg(p.out||0)+" kg",p.lot||"",
+    p.organic==="organic"?"有機":"有機でない",wNames(p.workers),p.memo||""];
+}
+function gradeRow(g){
+  return [mdOf(g.date),(g.teas||[]).map(function(k){return teaOf(k).ja;}).join("・"),g.sourceLot||"",
+    g.gram+"g × "+g.packs+"袋 = "+fmtKg(g.qty)+" kg",g.lot||"",
+    g.mark==="seal"?"シール "+(g.seals||0)+"枚":"印刷済み包材",
+    g.result==="pass"?"適合":"不適合",wNames(g.workers),g.memo||""];
+}
+function cleanRow(c){
+  return [mdOf(c.date),cleanEquipNames(c).join("・"),factoryOf(c.factory).ja,(dict(PREV,c.prev)||PREV[0]).ja,
+    c.method||"",(dict(CRESULT,c.result)||CRESULT[0]).ja,wNames(c.workers),c.memo||""];
+}
+var PRINT_COLS={
+  log:[["日付","Date"],["作業","Work"],["圃場","Fields"],["作業者","Workers"],["天候・時間","Weather / time"],
+       ["機械","Machines"],["資材","Inputs"],["収穫量・ロット","Harvest / lot"],["メモ","Notes"]],
+  proc:[["日付","Date"],["工程・茶","Stage / tea"],["工場","Factory"],["原料","Source"],["投入→出来高","In → out"],
+        ["ロット","Lot"],["有機","Organic"],["作業者","Workers"],["メモ","Notes"]],
+  grade:[["日付","Date"],["茶","Tea"],["原料ロット","From lot"],["内容量","Quantity"],["ロット","Lot"],
+         ["表示","Marking"],["判定","Result"],["格付担当","Officer"],["メモ","Notes"]],
+  clean:[["日付","Date"],["設備","Equipment"],["場所","Where"],["直前","Before"],["方法","Method"],
+         ["結果","Result"],["確認者","Checked by"],["メモ","Notes"]]
+};
+var ROW_OF={log:logRow,proc:procRow,grade:gradeRow,clean:cleanRow};
+var ALL_KINDS=["log","proc","grade","clean"];
+function pdfMonthRecords(y,m,kinds){
+  var rg=monthRange(y,m);
+  pdfRecords(rg[0],rg[1],y+"年"+(m+1)+"月",MONTHS_EN[m]+" "+y,y+"-"+p2(m+1),kinds,false);
+}
+/* the application year: October of the year before to September */
+function pdfYearRecords(year,kinds){
+  pdfRecords((year-1)+"-10-01",year+"-09-30",year+"年度（"+(year-1)+"年10月〜"+year+"年9月）",
+    "Year "+(year-1)+"/10 – "+year+"/9",year+"年度",kinds,true);
+}
+function pdfRecords(from,to,label,labelEn,fileTag,kinds,longDates){
+  kinds=kinds&&kinds.length?kinds:ALL_KINDS;
+  var r=recordsBetween(from,to);
+  printDoc("作業記録_"+fileTag,true,function(area){
+    pLongDates=!!longDates;
+    pHead(area,"作業記録 "+label,"Work records — "+labelEn);
+    var kg=0;r.log.forEach(function(l){var q=l.qtyByField||{};Object.keys(q).forEach(function(k){kg+=parseFloat(q[k])||0;});});
+    var parts=[];
+    if(kinds.indexOf("log")>-1)parts.push("栽培 "+r.log.length+"件（収穫 "+fmtKg(kg)+" kg）");
+    if(kinds.indexOf("proc")>-1)parts.push("加工 "+r.proc.length+"件");
+    if(kinds.indexOf("grade")>-1)parts.push("格付 "+r.grade.length+"件");
+    if(kinds.indexOf("clean")>-1)parts.push("洗浄 "+r.clean.length+"件");
+    area.appendChild(el("p","p-sum",parts.join("／")));
+    ALL_KINDS.filter(function(k){return kinds.indexOf(k)>-1;}).forEach(function(k){
+      var sec=el("section","p-sec");
+      var h=el("h2");h.appendChild(el("span",null,KIND_LABEL[k].ja+"の記録"));h.appendChild(el("span","p-en"," "+KIND_LABEL[k].en));
+      sec.appendChild(h);
+      if(!r[k].length)sec.appendChild(el("p","p-none","記録なし / No records"));
+      else sec.appendChild(pTable(PRINT_COLS[k],r[k].map(ROW_OF[k])));
+      area.appendChild(sec);
+    });
+    var sign=el("p","p-sign","確認者 / Checked by：＿＿＿＿＿＿＿＿＿＿　　確認日 / Date：＿＿＿＿＿＿＿＿");
+    area.appendChild(sign);
+    pLongDates=false;
+  });
+}
+function pdfMonthCalendar(y,m){
+  printDoc("作業カレンダー_"+y+"-"+p2(m+1),true,function(area){
+    pHead(area,"作業カレンダー "+y+"年"+(m+1)+"月","Work calendar — "+MONTHS_EN[m]+" "+y);
+    var t=el("table","p-cal"),hr=el("tr");
+    WD_JA.forEach(function(w,i){var c=el("th",i===0?"sun":i===6?"sat":null);c.appendChild(el("span",null,w));c.appendChild(el("span","p-en"," "+WD_EN[i]));hr.appendChild(c);});
+    var th=el("thead");th.appendChild(hr);t.appendChild(th);
+    var tb=el("tbody"),first=new Date(y,m,1).getDay(),days=new Date(y,m+1,0).getDate(),row=el("tr");
+    for(var i=0;i<first;i++)row.appendChild(el("td","blank"));
+    for(var d=1;d<=days;d++){
+      var ds=y+"-"+p2(m+1)+"-"+p2(d),wd=(first+d-1)%7,c=el("td");
+      c.appendChild(el("div","dn"+(wd===0?" sun":wd===6?" sat":""),String(d)));
+      recordsOn(ds).forEach(function(r){c.appendChild(el("div","ent k-"+r.kind,shortLabel(r.kind,r.o)));});
+      row.appendChild(c);
+      if(wd===6){tb.appendChild(row);row=el("tr");}
+    }
+    if(row.children.length){while(row.children.length<7)row.appendChild(el("td","blank"));tb.appendChild(row);}
+    t.appendChild(tb);area.appendChild(t);
+    var lg=el("p","p-legend");
+    ["log","proc","grade","clean"].forEach(function(k){lg.appendChild(el("span","k-"+k,KIND_LABEL[k].ja+" "+KIND_LABEL[k].en));});
+    area.appendChild(lg);
+  });
+}
+/* ---------- PDF tab: every printable in one place ---------- */
+var xY=null,xM=null,xKinds=ALL_KINDS.slice();
+function renderPdfView(){
+  if(xY===null){var t=today();xY=+t.slice(0,4);xM=+t.slice(5,7)-1;}
+  var title=document.getElementById("xTitle");title.textContent="";
+  bi(title,xY+"年"+(xM+1)+"月",MONTHS_EN[xM]+" "+xY);
+  var chips=document.getElementById("xKinds");chips.textContent="";
+  ALL_KINDS.forEach(function(k){
+    chips.appendChild(chipEl(KIND_LABEL[k].ja,KIND_LABEL[k].en,xKinds.indexOf(k)>-1,function(){
+      toggle(xKinds,k);renderPdfView();
+    }));
+  });
+  var rg=monthRange(xY,xM),r=recordsBetween(rg[0],rg[1]);
+  var cnt=document.getElementById("xCount");cnt.textContent="";
+  bi(cnt,"この月の記録：栽培 "+r.log.length+"件・加工 "+r.proc.length+"件・格付 "+r.grade.length+"件・洗浄 "+r.clean.length+"件",
+    "This month: field "+r.log.length+" · processing "+r.proc.length+" · grading "+r.grade.length+" · cleaning "+r.clean.length);
+  var none=!xKinds.length;
+  document.getElementById("xMonth").disabled=none;
+  document.getElementById("xYearRec").disabled=none;
+  var sel=document.getElementById("xYear"),cur=sel.value;
+  sel.textContent="";
+  appYears().forEach(function(y){
+    var o=document.createElement("option");
+    o.value=y;o.textContent=y+"年度（"+(y-1)+"年10月〜"+y+"年9月）";
+    sel.appendChild(o);
+  });
+  if(cur)sel.value=cur;
+}
+function moveXMonth(n){xM+=n;if(xM<0){xM=11;xY--;}if(xM>11){xM=0;xY++;}renderPdfView();}
+
+/* the application draft as pages: each sheet becomes a table laid out like its cells */
+function sheetTable(sh){
+  var maxR=0,maxC=0,k,cells=sh.cells;
+  for(k in cells){
+    if(!cells.hasOwnProperty(k)||cells[k]===""||cells[k]==null)continue;
+    var m=/^([A-Z]+)(\d+)$/.exec(k);if(!m)continue;
+    var c=0;for(var i=0;i<m[1].length;i++)c=c*26+(m[1].charCodeAt(i)-64);
+    maxR=Math.max(maxR,+m[2]);maxC=Math.max(maxC,c);
+  }
+  var t=el("table","p-sheet"),tb=el("tbody"),blank=0;
+  if(sh.cols&&sh.cols.length){
+    var ws=[],tot=0;
+    for(var ci=0;ci<maxC;ci++){ws.push(sh.cols[ci]||10);tot+=ws[ci];}
+    var cg=el("colgroup");
+    ws.forEach(function(w){var col=el("col");col.style.width=(w/tot*100)+"%";cg.appendChild(col);});
+    t.appendChild(cg);
+  }
+  for(var r=1;r<=maxR;r++){
+    var tr=el("tr"),any=false;
+    for(var c2=1;c2<=maxC;c2++){
+      var v=cells[colName(c2)+r];
+      var td=el("td",null,v==null?"":String(v));
+      if(v!==""&&v!=null)any=true;
+      tr.appendChild(td);
+    }
+    /* keep one empty row as a gap, drop the rest */
+    if(!any){blank++;if(blank>1)continue;}else blank=0;
+    tb.appendChild(tr);
+  }
+  t.appendChild(tb);
+  return t;
+}
+function pdfApplication(year){
+  printDoc("継続申請書下書き_"+year,true,function(area){
+    appSheets(year).forEach(function(sh,i){
+      var sec=el("section","p-page");
+      sec.appendChild(el("h2",null,sh.name));
+      sec.appendChild(sheetTable(sh));
+      area.appendChild(sec);
+    });
+  });
+}
+
 /* ---------- ui ---------- */
 var toastTimer=null;
 function toast(m){
@@ -3303,7 +4030,7 @@ function toast(m){
 var currentView="entry";
 function showView(v){
   currentView=v;
-  ["entry","proc","grade","clean","list","master"].forEach(function(k){
+  ["entry","proc","grade","clean","list","master","pdf","import"].forEach(function(k){
     document.getElementById("view-"+k).classList.toggle("hidden",k!==v);
   });
   Array.prototype.forEach.call(document.querySelectorAll(".tab"),function(t){
@@ -3317,6 +4044,7 @@ function showView(v){
   if(v==="clean")renderClean();
   if(v==="list")renderList();
   if(v==="master"){renderMaster();renderAppCard();}
+  if(v==="pdf")renderPdfView();
   window.scrollTo(0,0);
 }
 
@@ -3424,6 +4152,31 @@ document.getElementById("exportApp").onclick=function(){
   if(!y){toast(MSG.noLogs);return;}
   exportApplication(y);
 };
+document.getElementById("importCsv").onchange=
+document.getElementById("importCsvTab").onchange=function(){
+  var fl=this.files,input=this;
+  importCsvFiles(fl);
+  setTimeout(function(){input.value="";},0);
+};
+document.getElementById("pdfApp").onclick=function(){
+  var y=parseInt(document.getElementById("appYear").value,10);
+  if(!y){toast(MSG.noLogs);return;}
+  pdfApplication(y);
+};
+document.getElementById("xPrev").onclick=function(){moveXMonth(-1);};
+document.getElementById("xNext").onclick=function(){moveXMonth(1);};
+document.getElementById("xMonth").onclick=function(){pdfMonthRecords(xY,xM,xKinds);};
+document.getElementById("xCal").onclick=function(){pdfMonthCalendar(xY,xM);};
+document.getElementById("xYearRec").onclick=function(){
+  var y=parseInt(document.getElementById("xYear").value,10);if(y)pdfYearRecords(y,xKinds);
+};
+document.getElementById("xApp").onclick=function(){
+  var y=parseInt(document.getElementById("xYear").value,10);if(y)pdfApplication(y);
+};
+document.getElementById("mPrev").onclick=function(){moveMonth(-1);};
+document.getElementById("mNext").onclick=function(){moveMonth(1);};
+document.getElementById("pdfMonth").onclick=function(){pdfMonthRecords(mvY,mvM);};
+document.getElementById("pdfCal").onclick=function(){pdfMonthCalendar(mvY,mvM);};
 
 renderEntryChips();updateLot();renderProc();renderGrade();renderClean();renderList();renderMaster();
 renderAppCard();setStatus();
