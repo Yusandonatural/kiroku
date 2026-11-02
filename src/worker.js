@@ -50,8 +50,139 @@ async function api(request, env, url) {
   if (method === "POST" && path === "/sync") return push(request, env, member);
   if (method === "GET" && path === "/backup") return backup(env);
   if (method === "GET" && path === "/audit") return auditList(env);
+  if (method === "POST" && path === "/ai-read") return aiRead(request, env, member);
 
   return json({ error: "not_found" }, 404);
+}
+
+/* ---------------- reading a handwritten work log photo (Claude) ----------------
+ * The phone sends one downscaled JPEG plus the app's own vocabulary (field,
+ * task, machine… keys and names). Claude answers with drafts that use only
+ * those keys, so the app can drop them straight into its entry forms, where a
+ * person checks them before saving. Nothing is stored here.
+ * Needs the Worker secret ANTHROPIC_API_KEY. Plain fetch: this Worker has no
+ * npm dependencies and must stay that way.
+ */
+const AI_MODEL = "claude-opus-5-5";
+
+async function aiRead(request, env, member) {
+  if (!env.ANTHROPIC_API_KEY) return json({ error: "no_key" }, 503);
+  const body = await readJson(request);
+  const image = typeof body.image === "string" ? body.image : "";
+  if (!image || image.length > 7 * 1024 * 1024 || !/^[A-Za-z0-9+/=]+$/.test(image)) {
+    return json({ error: "bad_image" }, 400);
+  }
+  const v = body.vocab || {};
+  const list = (a, n) => (Array.isArray(a) ? a : []).slice(0, n)
+    .filter((x) => x && typeof x.k === "string" && x.k.length <= 64)
+    .map((x) => ({ k: x.k, ja: String(x.ja || "").slice(0, 60), en: String(x.en || "").slice(0, 60) }));
+  const vocab = {
+    fields: list(v.fields, 200), tasks: list(v.tasks, 60), machines: list(v.machines, 120),
+    workers: list(v.workers, 40), weather: list(v.weather, 10), stages: list(v.stages, 10),
+    teas: list(v.teas, 40), factories: list(v.factories, 20),
+  };
+  const today = /^\d{4}-\d{2}-\d{2}$/.test(body.today || "") ? body.today : new Date().toISOString().slice(0, 10);
+  const keys = (l) => l.map((x) => x.k);
+  const enumOrEmpty = (l) => ({ type: "string", enum: keys(l).concat([""]) });
+  const enumArray = (l) => ({ type: "array", items: { type: "string", enum: keys(l).length ? keys(l) : [""] } });
+
+  const schema = {
+    type: "object",
+    properties: {
+      records: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            kind: { type: "string", enum: ["log", "proc"] },
+            date: { type: "string" },
+            tasks: enumArray(vocab.tasks),
+            fieldIds: enumArray(vocab.fields),
+            workers: enumArray(vocab.workers),
+            weather: enumOrEmpty(vocab.weather),
+            machineIds: enumArray(vocab.machines),
+            harvest: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: { fieldId: enumOrEmpty(vocab.fields), kg: { type: "number" } },
+                required: ["fieldId", "kg"], additionalProperties: false,
+              },
+            },
+            materialNote: { type: "string" },
+            stage: enumOrEmpty(vocab.stages),
+            teas: enumArray(vocab.teas),
+            factory: enumOrEmpty(vocab.factories),
+            inKg: { type: "number" },
+            outKg: { type: "number" },
+            memo: { type: "string" },
+            unsure: { type: "string" },
+          },
+          required: ["kind", "date", "tasks", "fieldIds", "workers", "weather", "machineIds", "harvest",
+            "materialNote", "stage", "teas", "factory", "inKg", "outKg", "memo", "unsure"],
+          additionalProperties: false,
+        },
+      },
+      notes: { type: "string" },
+    },
+    required: ["records", "notes"],
+    additionalProperties: false,
+  };
+
+  const system =
+    "You read photos of handwritten work logs from an organic tea farm in Nara, Japan, and turn them into " +
+    "draft records for the farm's organic JAS record-keeping app. A person checks every draft before it is " +
+    "saved, so mark doubt rather than guess.\n\n" +
+    "Each line or entry on the sheet usually becomes one record. kind \"log\" is field work (harvesting, " +
+    "mowing, pruning, weeding, field checks…); kind \"proc\" is tea processing (making aracha, finishing, " +
+    "sorting, milling).\n\n" +
+    "Use only the keys in the vocabulary the user message gives — match handwritten names, nicknames and " +
+    "abbreviations to the closest entry. When nothing matches, leave the field empty and say what was written " +
+    "in `unsure`. Dates are YYYY-MM-DD; a date without a year is the most recent such date on or before " +
+    `${today}. Weights are kilograms (convert grams). Fill fields that do not apply to the kind with empty ` +
+    "values: empty string, empty array, or 0 for numbers. `harvest` lists kilograms per field for harvest work. " +
+    "`memo` keeps any other written note in Japanese as written. `unsure` says, in short Japanese, what you " +
+    "could not read or had to guess for that record; leave it empty when the record is clear. `notes` is for " +
+    "anything about the photo as a whole (unreadable parts, a page that is not a work log), in Japanese.";
+
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-api-key": env.ANTHROPIC_API_KEY,
+      "anthropic-version": "2026-10-21",
+      // a safety-classifier decline is re-run on Anthropic's recommended fallback model
+      "anthropic-beta": "server-side-fallback-2026-07-01",
+    },
+    body: JSON.stringify({
+      model: AI_MODEL,
+      max_tokens: 16000,
+      fallbacks: "default",
+      output_config: { effort: "medium", format: { type: "json_schema", schema } },
+      system,
+      messages: [{
+        role: "user",
+        content: [
+          { type: "image", source: { type: "base64", media_type: "image/jpeg", data: image } },
+          { type: "text", text: "Vocabulary (key, Japanese, English):\n" + JSON.stringify(vocab) },
+        ],
+      }],
+    }),
+  });
+
+  let out = {};
+  try { out = await res.json(); } catch (e) { /* non-JSON error page */ }
+  if (!res.ok) {
+    const kind = res.status === 429 || res.status === 529 || res.status >= 500 ? "busy" : "api_error";
+    return json({ error: kind, status: res.status, message: (out.error && out.error.message) || "" }, 502);
+  }
+  if (out.stop_reason === "refusal") return json({ error: "refused" }, 502);
+  if (out.stop_reason === "max_tokens") return json({ error: "too_long" }, 502);
+  const text = (out.content || []).filter((b) => b.type === "text").map((b) => b.text).join("");
+  let data;
+  try { data = JSON.parse(text); } catch (e) { return json({ error: "bad_reply" }, 502); }
+  await audit(env, member, "ai-read", `${(data.records || []).length} drafts`);
+  return json({ ok: true, records: data.records || [], notes: data.notes || "", model: out.model || AI_MODEL });
 }
 
 /* ---------------- settings & auth ---------------- */

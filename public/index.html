@@ -594,8 +594,8 @@ p.secsub .en{display:block;color:var(--faint)}
     <button class="tab" role="tab" aria-selected="false" data-view="clean"><span class="ja">洗浄</span><span class="en">Cleaning</span></button>
     <button class="tab" role="tab" aria-selected="false" data-view="list"><span class="ja">記録</span><span class="en">Log</span></button>
     <button class="tab" role="tab" aria-selected="false" data-view="master"><span class="ja">台帳</span><span class="en">Registers</span></button>
-    <button class="tab" role="tab" aria-selected="false" data-view="pdf"><span class="ja">PDF</span><span class="en">Export</span></button>
-    <button class="tab" role="tab" aria-selected="false" data-view="import"><span class="ja">CSV取込</span><span class="en">Import</span></button>
+    <button class="tab" role="tab" aria-selected="false" data-view="pdf"><span class="ja">書き出し</span><span class="en">Export</span></button>
+    <button class="tab" role="tab" aria-selected="false" data-view="import"><span class="ja">取り込み</span><span class="en">Import</span></button>
   </div>
 </header>
 
@@ -892,7 +892,12 @@ p.secsub .en{display:block;color:var(--faint)}
   <!-- ============ PDF ============ -->
   <section id="view-pdf" class="hidden">
     <div class="card">
-      <h2 class="sec"><span class="ja">月ごとのPDF</span><span class="en">Monthly PDF</span></h2>
+      <h2 class="sec"><span class="ja">書き出す形式</span><span class="en">File format</span></h2>
+      <div class="chips" id="xFormat"></div>
+      <p class="hint" id="xFormatHint"></p>
+    </div>
+    <div class="card">
+      <h2 class="sec"><span class="ja">月ごと</span><span class="en">Monthly</span></h2>
       <div class="mview">
         <div class="mhead">
           <button class="mnav" type="button" id="xPrev" aria-label="前の月 / Previous month">‹</button>
@@ -906,28 +911,34 @@ p.secsub .en{display:block;color:var(--faint)}
       </div>
       <p class="hint" id="xCount"></p>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-        <button class="btn primary" type="button" id="xMonth"><span class="ja">作業記録をPDFに</span><span class="en">Work records as PDF</span></button>
-        <button class="btn" type="button" id="xCal"><span class="ja">カレンダーをPDFに</span><span class="en">Calendar as PDF</span></button>
+        <button class="btn primary" type="button" id="xMonth"><span class="ja">作業記録を書き出す</span><span class="en">Export work records</span></button>
+        <button class="btn" type="button" id="xCal"><span class="ja">カレンダーを書き出す</span><span class="en">Export the calendar</span></button>
       </div>
     </div>
     <div class="card">
-      <h2 class="sec"><span class="ja">年度のPDF</span><span class="en">Yearly PDF</span></h2>
+      <h2 class="sec"><span class="ja">年度ごと</span><span class="en">Yearly</span></h2>
       <p class="secsub">申請年度(10月〜翌9月)の1年分です。検査や継続申請の控えに使えます。<span class="en">One application year, October to September — for inspections and as a copy of the renewal application.</span></p>
       <div class="field">
         <label class="lb" for="xYear"><span class="ja">申請年度</span><span class="en">Application year</span></label>
         <select id="xYear"></select>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-        <button class="btn primary" type="button" id="xYearRec"><span class="ja">1年分の作業記録をPDFに</span><span class="en">The year's records as PDF</span></button>
-        <button class="btn" type="button" id="xApp"><span class="ja">継続申請書(下書き)をPDFに</span><span class="en">Application draft as PDF</span></button>
+        <button class="btn primary" type="button" id="xYearRec"><span class="ja">1年分の作業記録を書き出す</span><span class="en">Export the year's records</span></button>
+        <button class="btn" type="button" id="xApp"><span class="ja">継続申請書(下書き)を書き出す</span><span class="en">Export the application draft</span></button>
       </div>
       <p class="hint">作業記録の種類は、上の「入れる記録」で選んだものになります。<span class="en">The yearly records use the kinds chosen under "Records to include" above.</span></p>
     </div>
-    <p class="note">ボタンを押すと印刷の画面が開きます。パソコンは「PDFとして保存」、iPhoneは右上の共有ボタン →「ファイルに保存」でPDFになります。<span class="en">Each button opens the print screen. On a computer choose "Save as PDF"; on an iPhone tap Share (top right) → "Save to Files".</span></p>
   </section>
 
   <!-- ============ CSV IMPORT ============ -->
   <section id="view-import" class="hidden">
+    <div class="card">
+      <h2 class="sec"><span class="ja">手書きの写真から読み取る(AI)</span><span class="en">Read a handwritten log photo (AI)</span></h2>
+      <p class="secsub">紙の作業日誌や加工の記録を撮った写真を、AIが読み取って記録の下書きにします。下書きは「フォームに入れる」で栽培・加工の入力画面に入るので、内容を確かめて直してから「記録する」で保存してください。AIの読み取りは間違えることがあります。<span class="en">AI reads a photo of a paper work log or processing sheet and turns it into draft records. "Put in the form" opens each draft in the Field or Processing entry screen; check and correct it there, then save with "Save record". The AI can misread.</span></p>
+      <label class="btn primary" style="cursor:pointer;display:block"><span class="ja">写真を選ぶ・撮る</span><span class="en">Choose or take photos</span><input type="file" id="aiPhotos" accept="image/*" multiple style="display:none"></label>
+      <p class="hint" id="aiStatus"></p>
+      <div id="aiDrafts"></div>
+    </div>
     <div class="card">
       <h2 class="sec"><span class="ja">CSVをまとめて取り込む</span><span class="en">Import CSV files</span></h2>
       <p class="secsub">このアプリで書き出したCSV(作業日誌・加工・格付・洗浄)を、何枚でもまとめて選べます。種類は自動で見分け、取り込む前に件数を確認します。<span class="en">Pick any number of the CSV files this app exports (field log, processing, grading, cleaning) at once. Each file's kind is detected automatically, and the counts are shown for confirmation before anything is added.</span></p>
@@ -3269,6 +3280,151 @@ function importCsvFiles(list){
   }
 }
 
+/* ================= reading handwritten photos (AI) =================
+   The Worker asks Claude to read the photo; the drafts come back using this
+   app's own keys and are loaded into the normal entry forms, so a person
+   checks every one and saves it the usual way. Nothing is saved from here. */
+var aiDrafts=[];
+function aiVocab(){
+  var kv=function(l){return l.map(function(x){return {k:x.k,ja:x.ja,en:x.en||""};});};
+  return {
+    fields:store.fields.filter(function(f){return f.status!=="retired";})
+      .map(function(f){return {k:f.id,ja:f.ja||"",en:f.en||""};}),
+    tasks:kv(TASKS),weather:kv(WEATHER),stages:kv(STAGES),teas:kv(TEAS),
+    machines:store.machines.map(function(m){return {k:m.id,ja:m.ja||"",en:m.en||""};}),
+    workers:store.workers.map(function(w){var p=w.split("/");return {k:w,ja:p[0].trim(),en:(p[1]||"").trim()};}),
+    factories:store.factories.map(function(f){return {k:f.k,ja:f.ja||"",en:f.en||""};})
+  };
+}
+/* phones take 12-megapixel photos; ~1600px on the long side is plenty to read
+   handwriting and keeps the upload small on a weak signal */
+function shrinkPhoto(file){
+  return new Promise(function(resolve,reject){
+    var url=URL.createObjectURL(file),img=new Image();
+    img.onload=function(){
+      var max=1600,w=img.naturalWidth,h=img.naturalHeight,s=Math.min(1,max/Math.max(w,h));
+      var cv=document.createElement("canvas");cv.width=Math.round(w*s);cv.height=Math.round(h*s);
+      cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);
+      URL.revokeObjectURL(url);
+      resolve(cv.toDataURL("image/jpeg",0.85).split(",")[1]);
+    };
+    img.onerror=function(){URL.revokeObjectURL(url);reject(new Error("image"));};
+    img.src=url;
+  });
+}
+var AI_ERR={
+  no_key:{ja:"AIの設定がまだです(サーバーにAPIキーがありません)",en:"AI is not set up yet (no API key on the server)"},
+  busy:{ja:"AIが混み合っています。少し待ってからもう一度",en:"The AI is busy — try again in a moment"},
+  refused:{ja:"この写真は読み取れませんでした",en:"This photo could not be read"},
+  bad_image:{ja:"写真を読み込めませんでした",en:"Could not load the photo"}
+};
+function aiSetStatus(ja,en,warn){
+  var s=document.getElementById("aiStatus");s.textContent="";
+  s.style.color=warn?"var(--warn)":"";
+  if(ja)bi(s,ja,en);
+}
+function aiReadPhotos(files){
+  if(!files.length)return;
+  if(!online()){aiSetStatus("写真の読み取りは電波のある所で行ってください","Reading photos needs a connection",true);return;}
+  var list=Array.prototype.slice.call(files),i=0,got=0;
+  (function next(){
+    if(i>=list.length){
+      aiSetStatus(list.length+"枚を読み取りました。下書き "+got+"件",
+        "Read "+list.length+" photo(s): "+got+" draft(s)");
+      renderAiDrafts();return;
+    }
+    var f=list[i++];
+    aiSetStatus("読み取り中… "+i+"/"+list.length+"（1枚 数十秒かかります）","Reading "+i+" of "+list.length+"… (tens of seconds each)");
+    shrinkPhoto(f).then(function(b64){
+      return apiFetch("/api/ai-read",{method:"POST",body:{image:b64,vocab:aiVocab(),today:today()}});
+    }).then(function(res){
+      if(!res.ok){
+        var m=AI_ERR[res.data&&res.data.error]||{ja:"読み取りに失敗しました",en:"Reading failed"};
+        aiDrafts.push({photo:f.name,error:m});return;
+      }
+      if(res.data.notes)aiDrafts.push({photo:f.name,note:res.data.notes});
+      (res.data.records||[]).forEach(function(r){aiDrafts.push({photo:f.name,r:r,used:false});got++;});
+    },function(){
+      aiDrafts.push({photo:f.name,error:AI_ERR.bad_image});
+    }).then(function(){renderAiDrafts();next();});
+  })();
+}
+function aiSummary(r){
+  var ja=[],en=[];
+  if(r.kind==="proc"){
+    ja.push(stageOf(r.stage).ja+((r.teas||[]).length?" "+r.teas.map(function(k){return teaOf(k).ja;}).join("・"):""));
+    en.push(stageOf(r.stage).en);
+    if(r.factory){ja.push("工場 "+factoryOf(r.factory).ja);en.push("Factory: "+factoryOf(r.factory).en);}
+    if(r.inKg||r.outKg){ja.push(fmtKg(r.inKg||0)+" → "+fmtKg(r.outKg||0)+" kg");en.push(fmtKg(r.inKg||0)+" → "+fmtKg(r.outKg||0)+" kg");}
+  }else{
+    ja.push((r.tasks||[]).map(function(k){return taskOf(k).ja;}).join("・")||"作業");
+    en.push((r.tasks||[]).map(function(k){return taskOf(k).en;}).join(" · ")||"Work");
+    (r.harvest||[]).forEach(function(h){
+      if(h.fieldId&&h.kg){ja.push((fieldOf(h.fieldId).ja||h.fieldId)+" "+fmtKg(h.kg)+"kg");en.push((fieldOf(h.fieldId).en||h.fieldId)+" "+fmtKg(h.kg)+" kg");}
+    });
+  }
+  if((r.fieldIds||[]).length){ja.push("圃場 "+joinJa(r.fieldIds,fieldOf));en.push("Fields: "+joinEn(r.fieldIds,fieldOf));}
+  if((r.workers||[]).length){ja.push("作業者 "+wNames(r.workers));en.push("Workers: "+r.workers.map(function(w){var p=w.split("/");return (p[1]||p[0]).trim();}).join(", "));}
+  return {ja:ja.join(" / "),en:en.join(" / ")};
+}
+function renderAiDrafts(){
+  var box=document.getElementById("aiDrafts");box.textContent="";
+  aiDrafts.forEach(function(d,i){
+    if(d.error||d.note){
+      var p=el("p","hint");p.style.color="var(--warn)";
+      bi(p,d.photo+"："+(d.error?d.error.ja:d.note),d.error?d.error.en:"");
+      box.appendChild(p);return;
+    }
+    var r=d.r,c=el("div","log"+(r.kind==="proc"?" proc":""));
+    if(d.used)c.style.opacity=".55";
+    var t=el("div","tasks");
+    bi(t,(r.date?fmtDate(r.date):"日付不明")+"　"+KIND_LABEL[r.kind==="proc"?"proc":"log"].ja,
+      (r.date||"no date")+" · "+KIND_LABEL[r.kind==="proc"?"proc":"log"].en);
+    var pill=el("span","pill "+(d.used?"sync":"local"),d.used?"入れました Loaded":"下書き Draft");
+    var s=el("div","sub"),sm=aiSummary(r);
+    s.appendChild(el("span",null,sm.ja));s.appendChild(el("span","en",sm.en));
+    c.appendChild(t);c.appendChild(pill);c.appendChild(s);
+    if(r.memo)c.appendChild(el("div","memo",r.memo));
+    if(r.unsure){
+      var u=el("div","memo");u.style.color="var(--warn)";u.style.fontWeight="700";
+      u.textContent="要確認 Check：「"+r.unsure+"」";c.appendChild(u);
+    }
+    var row=el("div");row.style.cssText="grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap;margin-top:4px";
+    var go=bi(el("button","btn primary"),"フォームに入れる","Put in the form");go.type="button";
+    go.onclick=function(){loadAiDraft(i);};
+    var no=bi(el("button","btn ghost"),"使わない","Discard");no.type="button";
+    no.onclick=function(){aiDrafts.splice(i,1);renderAiDrafts();};
+    row.appendChild(go);row.appendChild(no);c.appendChild(row);
+    box.appendChild(c);
+  });
+}
+function loadAiDraft(i){
+  var d=aiDrafts[i],r=d.r,date=/^\d{4}-\d{2}-\d{2}$/.test(r.date||"")?r.date:today();
+  var note=r.unsure?"［要確認: "+r.unsure+"］":"";
+  if(r.kind==="proc"){
+    var leaf={};
+    if(r.stage==="aracha"&&(r.fieldIds||[]).length===1&&r.inKg)leaf[r.fieldIds[0]]=String(r.inKg);
+    pdraft={date:date,stage:r.stage||"aracha",workers:(r.workers||[]).slice(),factory:r.factory||"own",
+            fieldIds:r.stage==="aracha"?(r.fieldIds||[]).slice():[],leaf:leaf,parents:[],ext:false,extName:"",extKg:"",
+            teas:(r.teas||[]).slice(),organic:"organic",out:r.outKg?String(r.outKg):""};
+    document.getElementById("pMemo").value=[r.memo||"",note].filter(Boolean).join(" ");
+    showView("proc");
+  }else{
+    var q={};
+    (r.harvest||[]).forEach(function(h){if(h.fieldId&&h.kg)q[h.fieldId]=String(h.kg);});
+    var ids=(r.fieldIds||[]).slice();
+    Object.keys(q).forEach(function(id){if(ids.indexOf(id)<0)ids.push(id);});
+    draft={date:date,fieldIds:ids,tasks:(r.tasks||[]).slice(),machineIds:(r.machineIds||[]).slice(),
+           weather:r.weather||"",material:r.materialNote?"used":"none",workers:(r.workers||[]).slice(),qtyByField:q};
+    document.getElementById("date").value=date;
+    document.getElementById("materialNote").value=r.materialNote||"";
+    document.getElementById("memo").value=[r.memo||"",note].filter(Boolean).join(" ");
+    showView("entry");renderEntryChips();updateLot();
+  }
+  d.used=true;renderAiDrafts();
+  toast({ja:"下書きを入れました。確かめて「記録する」で保存してください",en:"Draft loaded — check it, then press Save record"});
+}
+
 /* ================= renewal application (継続申請書) =================
    The A-J sheet is a fixed grid: months run across columns B..M (Oct→Sep),
    row 14 carries the work done, row 23 the harvest, and rows 28/36 the plan
@@ -3945,10 +4101,70 @@ function pdfMonthCalendar(y,m){
     area.appendChild(lg);
   });
 }
-/* ---------- PDF tab: every printable in one place ---------- */
-var xY=null,xM=null,xKinds=ALL_KINDS.slice();
+/* ---------- Excel versions of the same documents ---------- */
+function downloadXlsx(filename,sheets){
+  try{
+    var blob=new Blob([makeXlsx(sheets)],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement("a");
+    a.href=url;a.download=filename;a.style.display="none";
+    document.body.appendChild(a);a.click();
+    setTimeout(function(){URL.revokeObjectURL(url);a.remove();},1500);
+    toast(MSG.exported);
+  }catch(e){toast(MSG.exportFail);}
+}
+/* a plain table: bilingual header in row 1, one record per row below */
+function tableSheet(name,heads,rows,widths){
+  var c={};
+  heads.forEach(function(h,i){c[colName(i+1)+"1"]=h[0]+" / "+h[1];});
+  rows.forEach(function(r,ri){r.forEach(function(v,ci){if(v!==""&&v!=null)c[colName(ci+1)+(ri+2)]=v;});});
+  return {name:safeSheetName(name),cells:c,cols:widths};
+}
+var XLSX_WIDTHS={log:[12,18,18,16,14,14,14,24,24],proc:[12,16,12,18,16,14,10,14,24],
+                 grade:[12,12,14,22,14,14,10,14,24],clean:[12,20,12,14,24,14,14,24]};
+function xlsxRecords(from,to,fileTag,kinds){
+  kinds=kinds&&kinds.length?kinds:ALL_KINDS;
+  var r=recordsBetween(from,to),sheets=[];
+  ALL_KINDS.filter(function(k){return kinds.indexOf(k)>-1;}).forEach(function(k){
+    /* Excel gets the plain date so the column sorts and filters as a date */
+    var rows=r[k].map(function(o){var row=ROW_OF[k](o);row[0]=o.date;return row;});
+    sheets.push(tableSheet(KIND_LABEL[k].ja+"の記録",PRINT_COLS[k],rows,XLSX_WIDTHS[k]));
+  });
+  downloadXlsx("作業記録_"+fileTag+".xlsx",sheets);
+}
+/* the calendar as one row per day — easier to use in Excel than a 7-column grid */
+function xlsxCalendar(y,m){
+  var heads=[["日付","Date"],["曜日","Day"]].concat(ALL_KINDS.map(function(k){return [KIND_LABEL[k].ja,KIND_LABEL[k].en];}));
+  var rows=[],days=new Date(y,m+1,0).getDate();
+  for(var d=1;d<=days;d++){
+    var ds=y+"-"+p2(m+1)+"-"+p2(d),recs=recordsOn(ds);
+    var wd=new Date(y,m,d).getDay();
+    rows.push([ds,WD_JA[wd]+" "+WD_EN[wd]].concat(ALL_KINDS.map(function(k){
+      return recs.filter(function(x){return x.kind===k;}).map(function(x){return shortLabel(k,x.o);}).join("、");
+    })));
+  }
+  downloadXlsx("作業カレンダー_"+y+"-"+p2(m+1)+".xlsx",
+    [tableSheet(y+"年"+(m+1)+"月",heads,rows,[12,8,30,24,20,20])]);
+}
+
+/* ---------- export tab: every document, as PDF or Excel ---------- */
+var xY=null,xM=null,xKinds=ALL_KINDS.slice(),xFmt="pdf";
+try{if(localStorage.getItem(KEY+"_exportFmt")==="xlsx")xFmt="xlsx";}catch(e){}
+var FORMATS=[{k:"pdf",ja:"PDF",en:"PDF"},{k:"xlsx",ja:"Excel",en:"Excel (.xlsx)"}];
 function renderPdfView(){
   if(xY===null){var t=today();xY=+t.slice(0,4);xM=+t.slice(5,7)-1;}
+  var fc=document.getElementById("xFormat");fc.textContent="";
+  FORMATS.forEach(function(f){
+    fc.appendChild(chipEl(f.ja,f.en,xFmt===f.k,function(){
+      xFmt=f.k;try{localStorage.setItem(KEY+"_exportFmt",xFmt);}catch(e){}
+      renderPdfView();
+    }));
+  });
+  var fh=document.getElementById("xFormatHint");fh.textContent="";
+  if(xFmt==="pdf")bi(fh,"ボタンを押すと印刷の画面が開きます。パソコンは「PDFとして保存」、iPhoneは右上の共有ボタン →「ファイルに保存」でPDFになります。",
+    "Each button opens the print screen. On a computer choose \"Save as PDF\"; on an iPhone tap Share (top right) → \"Save to Files\".");
+  else bi(fh,"ボタンを押すと .xlsx ファイルがダウンロードされます。記録の種類ごとにシートが分かれ、1行目が見出しです。",
+    "Each button downloads an .xlsx file: one sheet per kind of record, headers in the first row.");
   var title=document.getElementById("xTitle");title.textContent="";
   bi(title,xY+"年"+(xM+1)+"月",MONTHS_EN[xM]+" "+xY);
   var chips=document.getElementById("xKinds");chips.textContent="";
@@ -4152,6 +4368,11 @@ document.getElementById("exportApp").onclick=function(){
   if(!y){toast(MSG.noLogs);return;}
   exportApplication(y);
 };
+document.getElementById("aiPhotos").onchange=function(){
+  var fl=Array.prototype.slice.call(this.files||[]),input=this;
+  setTimeout(function(){input.value="";},0);
+  aiReadPhotos(fl);
+};
 document.getElementById("importCsv").onchange=
 document.getElementById("importCsvTab").onchange=function(){
   var fl=this.files,input=this;
@@ -4165,13 +4386,21 @@ document.getElementById("pdfApp").onclick=function(){
 };
 document.getElementById("xPrev").onclick=function(){moveXMonth(-1);};
 document.getElementById("xNext").onclick=function(){moveXMonth(1);};
-document.getElementById("xMonth").onclick=function(){pdfMonthRecords(xY,xM,xKinds);};
-document.getElementById("xCal").onclick=function(){pdfMonthCalendar(xY,xM);};
+document.getElementById("xMonth").onclick=function(){
+  if(xFmt==="xlsx"){var rg=monthRange(xY,xM);xlsxRecords(rg[0],rg[1],xY+"-"+p2(xM+1),xKinds);}
+  else pdfMonthRecords(xY,xM,xKinds);
+};
+document.getElementById("xCal").onclick=function(){
+  if(xFmt==="xlsx")xlsxCalendar(xY,xM);else pdfMonthCalendar(xY,xM);
+};
 document.getElementById("xYearRec").onclick=function(){
-  var y=parseInt(document.getElementById("xYear").value,10);if(y)pdfYearRecords(y,xKinds);
+  var y=parseInt(document.getElementById("xYear").value,10);if(!y)return;
+  if(xFmt==="xlsx")xlsxRecords((y-1)+"-10-01",y+"-09-30",y+"年度",xKinds);
+  else pdfYearRecords(y,xKinds);
 };
 document.getElementById("xApp").onclick=function(){
-  var y=parseInt(document.getElementById("xYear").value,10);if(y)pdfApplication(y);
+  var y=parseInt(document.getElementById("xYear").value,10);if(!y)return;
+  if(xFmt==="xlsx")exportApplication(y);else pdfApplication(y);
 };
 document.getElementById("mPrev").onclick=function(){moveMonth(-1);};
 document.getElementById("mNext").onclick=function(){moveMonth(1);};

@@ -12,11 +12,15 @@
 ビルド工程なし。`wrangler.toml` の assets 設定で `public/` をそのまま配信し、`/api/*` だけ Worker が処理する。
 
 ```
-src/worker.js   API（認証・同期・iCal・バックアップ）。依存ライブラリなし
+src/worker.js   API（認証・同期・iCal・バックアップ・手書き写真のAI読み取り）。依存ライブラリなし
 public/index.html  アプリ本体。HTML/CSS/JS を1ファイルに同梱（約4,500行）
 public/sw.js    Service Worker。リリース時に VERSION を上げる
 schema.sql      D1 のテーブル定義（records / masters / settings / audit）
 ```
+
+手書き写真の読み取り（`/api/ai-read`）は Claude API を `fetch` で直接呼ぶ（モデル `claude-opus-5-5`）。
+Worker のシークレット `ANTHROPIC_API_KEY` が必要で、無いと `no_key` を返し、アプリは「AIの設定がまだです」と出す。
+読み取った下書きは保存せず、栽培・加工の入力フォームに入れて人が確かめてから保存する（記録は後から直せないため）。
 
 ## データの考え方
 
