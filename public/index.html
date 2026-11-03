@@ -391,6 +391,15 @@ p.secsub .en{display:block;color:var(--faint)}
   font-weight:500;white-space:nowrap;
 }
 .hrow .n{font-size:11.5px;color:var(--faint);font-family:"IBM Plex Mono",monospace;white-space:nowrap}
+/* ---- cleaning check for the machines used ---- */
+.mclean{margin-top:12px;padding:10px 12px 4px;border-radius:10px;border:1px solid var(--line);background:var(--surface2)}
+.mclean.todo{border-color:var(--warn);background:var(--warn-soft)}
+.mcrow{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.mcrow:last-child{border-bottom:none}
+.mcrow .nm{flex:1;min-width:0;line-height:1.45}
+.mcrow .nm .ja{display:block;font-size:14px;font-weight:600}
+.mcrow .nm .m{display:block;font-size:12px;color:var(--muted)}
+.mcrow .chip{flex:none}
 /* ---- per-field harvest entry ---- */
 .qrow{
   display:flex;align-items:center;gap:10px;padding:9px 0;
@@ -632,6 +641,11 @@ p.secsub .en{display:block;color:var(--faint)}
       <div class="field">
         <span class="lb"><span class="ja">使用機械</span><span class="en">Machines used</span></span>
         <div class="chips" id="machineChips"></div>
+        <div class="mclean hidden" id="machineClean">
+          <span class="lb"><span class="ja">洗浄チェック</span><span class="en">Cleaning check</span><span class="opt en">必須 / required</span></span>
+          <div id="machineCleanRows"></div>
+          <p class="hint">使った機械ごとに、使用後の洗浄・清掃をしたら「洗浄済み」を押してください。全部に付けないと記録できません。<span class="en">For each machine used, press "Cleaned" once it has been cleaned after use. The record cannot be saved until every machine is checked.</span></p>
+        </div>
       </div>
 
       <div class="field">
@@ -1299,7 +1313,7 @@ var SEED={
 var pdraft={date:"",stage:"aracha",workers:[],factory:"own",fieldIds:[],leaf:{},
             parents:[],ext:false,extName:"",extKg:"",teas:[],organic:"organic",out:""};
 var store=load(),busy=false;
-var draft={date:today(),fieldIds:[],tasks:[],machineIds:[],weather:"",material:"none",workers:[],qtyByField:{}};
+var draft={date:today(),fieldIds:[],tasks:[],machineIds:[],cleaned:[],weather:"",material:"none",workers:[],qtyByField:{}};
 
 /* ---------- storage ---------- */
 function load(){
@@ -1727,6 +1741,7 @@ function renderEntryChips(){
       toggle(draft.machineIds,m.id);renderEntryChips();
     }));
   });
+  renderMachineClean();
   var wc=document.getElementById("weatherChips");wc.textContent="";
   WEATHER.forEach(function(w){
     wc.appendChild(chipEl(w.ja,w.en,draft.weather===w.k,function(){
@@ -1747,6 +1762,26 @@ function renderEntryChips(){
     wc.appendChild(chipEl(ja,en,draft.workers.indexOf(w)>-1,function(){
       toggle(draft.workers,w);renderEntryChips();
     }));
+  });
+}
+/* every machine used needs its after-use cleaning confirmed before the log can be
+   saved; the method shown is the one written in the renewal application (A-G) */
+function cleanMethodOf(id){var m=machineOf(id);return CLEAN[m.ja]||"使用後に清掃";}
+function renderMachineClean(){
+  draft.cleaned=(draft.cleaned||[]).filter(function(id){return draft.machineIds.indexOf(id)>-1;});
+  var box=document.getElementById("machineClean");
+  box.classList.toggle("hidden",!draft.machineIds.length);
+  box.classList.toggle("todo",draft.machineIds.length>draft.cleaned.length);
+  var rows=document.getElementById("machineCleanRows");rows.textContent="";
+  draft.machineIds.forEach(function(id){
+    var m=machineOf(id),r=el("div","mcrow"),nm=el("span","nm");
+    nm.appendChild(el("span","ja",m.ja||m.en||id));
+    nm.appendChild(el("span","m",cleanMethodOf(id)));
+    r.appendChild(nm);
+    r.appendChild(chipEl("洗浄済み","Cleaned",draft.cleaned.indexOf(id)>-1,function(){
+      toggle(draft.cleaned,id);renderMachineClean();
+    }));
+    rows.appendChild(r);
   });
 }
 function toggle(arr,v){var i=arr.indexOf(v);if(i>-1)arr.splice(i,1);else arr.push(v);}
@@ -1809,6 +1844,13 @@ function saveLog(){
   if(busy)return;
   if(!draft.tasks.length){toast(MSG.needTask);return;}
   if(!draft.fieldIds.length){toast(MSG.needField);return;}
+  var uncleaned=draft.machineIds.filter(function(id){return (draft.cleaned||[]).indexOf(id)<0;});
+  if(uncleaned.length){
+    toast({ja:"使った機械の洗浄チェックを付けてください："+joinJa(uncleaned,machineOf),
+           en:"Check the cleaning of every machine used: "+joinEn(uncleaned,machineOf)});
+    document.getElementById("machineClean").scrollIntoView({block:"center"});
+    return;
+  }
   busy=true;
   var date=draft.date||today();
   var qbf={},lots={},total=0;
@@ -1825,9 +1867,13 @@ function saveLog(){
     memo:document.getElementById("memo").value,workers:draft.workers.slice(),
     updatedAt:Date.now(),synced:false
   };
+  if(draft.machineIds.length){
+    log.cleanedMachineIds=draft.machineIds.slice();
+    log.cleaning=draft.machineIds.map(function(id){return machineOf(id).ja+"："+cleanMethodOf(id);}).join("、");
+  }
   store.logs.push(log);persist();pushPending();setStatus();renderList();
   var wasOnline=online();
-  draft={date:log.date,fieldIds:[],tasks:[],machineIds:[],weather:"",material:"none",
+  draft={date:log.date,fieldIds:[],tasks:[],machineIds:[],cleaned:[],weather:"",material:"none",
          workers:log.workers.slice(),qtyByField:{}};
   document.getElementById("memo").value="";
   document.getElementById("materialNote").value="";
@@ -3414,7 +3460,7 @@ function loadAiDraft(i){
     (r.harvest||[]).forEach(function(h){if(h.fieldId&&h.kg)q[h.fieldId]=String(h.kg);});
     var ids=(r.fieldIds||[]).slice();
     Object.keys(q).forEach(function(id){if(ids.indexOf(id)<0)ids.push(id);});
-    draft={date:date,fieldIds:ids,tasks:(r.tasks||[]).slice(),machineIds:(r.machineIds||[]).slice(),
+    draft={date:date,fieldIds:ids,tasks:(r.tasks||[]).slice(),machineIds:(r.machineIds||[]).slice(),cleaned:[],
            weather:r.weather||"",material:r.materialNote?"used":"none",workers:(r.workers||[]).slice(),qtyByField:q};
     document.getElementById("date").value=date;
     document.getElementById("materialNote").value=r.materialNote||"";
@@ -4013,7 +4059,8 @@ function logRow(l){
   if(l.hours)t.push(l.hours+"時間");
   return [mdOf(l.date),(l.tasks||[]).map(function(k){return taskOf(k).ja;}).join("・"),
     joinJa(l.fieldIds||[],fieldOf),wNames(l.workers),weatherOf(l.weather).ja+(t.length?"\n"+t.join(" "):""),
-    joinJa(l.machineIds||[],machineOf),l.material==="used"?(l.materialNote||"使用あり"):"なし",q,l.memo||""];
+    joinJa(l.machineIds||[],machineOf)+(l.cleaning?"\n洗浄 "+l.cleaning:""),
+    l.material==="used"?(l.materialNote||"使用あり"):"なし",q,l.memo||""];
 }
 function procRow(p){
   var src=procFields(p).map(function(id){return fieldOf(id).ja;}).join("、");
@@ -4034,7 +4081,7 @@ function cleanRow(c){
 }
 var PRINT_COLS={
   log:[["日付","Date"],["作業","Work"],["圃場","Fields"],["作業者","Workers"],["天候・時間","Weather / time"],
-       ["機械","Machines"],["資材","Inputs"],["収穫量・ロット","Harvest / lot"],["メモ","Notes"]],
+       ["機械・洗浄","Machines / cleaning"],["資材","Inputs"],["収穫量・ロット","Harvest / lot"],["メモ","Notes"]],
   proc:[["日付","Date"],["工程・茶","Stage / tea"],["工場","Factory"],["原料","Source"],["投入→出来高","In → out"],
         ["ロット","Lot"],["有機","Organic"],["作業者","Workers"],["メモ","Notes"]],
   grade:[["日付","Date"],["茶","Tea"],["原料ロット","From lot"],["内容量","Quantity"],["ロット","Lot"],
@@ -4318,7 +4365,7 @@ document.getElementById("copyLast").onclick=function(){
   if(!store.logs.length){toast(MSG.noLast);return;}
   var last=store.logs.slice().sort(function(a,b){return (b.updatedAt||0)-(a.updatedAt||0);})[0];
   draft.fieldIds=last.fieldIds.slice();draft.tasks=last.tasks.slice();
-  draft.machineIds=last.machineIds.slice();draft.weather=last.weather;
+  draft.machineIds=last.machineIds.slice();draft.cleaned=[];draft.weather=last.weather;
   draft.material=last.material;draft.workers=(last.workers||[]).slice();draft.qtyByField={};
   renderEntryChips();updateLot();toast(MSG.copied);
 };
