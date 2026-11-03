@@ -911,6 +911,11 @@ p.secsub .en{display:block;color:var(--faint)}
       <p class="hint" id="xFormatHint"></p>
     </div>
     <div class="card">
+      <h2 class="sec"><span class="ja">圃場</span><span class="en">Fields</span></h2>
+      <div class="chips" id="xFields"></div>
+      <p class="hint">圃場を選ぶと、その圃場の記録だけを書き出します(複数選べます)。圃場を選んだときは、工場の設備についての洗浄記録は入りません。<span class="en">Choose fields to export only their records (several allowed). With fields chosen, cleaning records — which are about factory equipment — are left out.</span></p>
+    </div>
+    <div class="card">
       <h2 class="sec"><span class="ja">月ごと</span><span class="en">Monthly</span></h2>
       <div class="mview">
         <div class="mhead">
@@ -938,9 +943,10 @@ p.secsub .en{display:block;color:var(--faint)}
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
         <button class="btn primary" type="button" id="xYearRec"><span class="ja">1年分の作業記録を書き出す</span><span class="en">Export the year's records</span></button>
+        <button class="btn" type="button" id="xAJ"><span class="ja">A-J(申請圃場の栽培履歴)を書き出す</span><span class="en">Export A-J (cultivation history)</span></button>
         <button class="btn" type="button" id="xApp"><span class="ja">継続申請書(下書き)を書き出す</span><span class="en">Export the application draft</span></button>
       </div>
-      <p class="hint">作業記録の種類は、上の「入れる記録」で選んだものになります。<span class="en">The yearly records use the kinds chosen under "Records to include" above.</span></p>
+      <p class="hint">作業記録の種類は、上の「入れる記録」で選んだものになります。A-Jは申請書と同じセル位置で、申請中の圃場ごとに1枚です。上で圃場を選ぶと、その圃場のA-Jだけになります。<span class="en">The yearly records use the kinds chosen under "Records to include" above. A-J matches the official form cell for cell, one sheet per applied field; choosing fields above limits it to those fields.</span></p>
     </div>
   </section>
 
@@ -3939,21 +3945,29 @@ function renderAppCard(){
 var KIND_LABEL={log:{ja:"栽培",en:"Field"},proc:{ja:"加工",en:"Processing"},
                 grade:{ja:"格付",en:"Grading"},clean:{ja:"洗浄",en:"Cleaning"}};
 var mvY=null,mvM=null,mvSel=null;
-function recordsOn(date){
+/* does a record belong to any of these fields? No list means every field.
+   Cleaning records are about factory equipment, not a field, so a field
+   filter leaves them out. */
+function inFields(kind,o,fids){
+  if(!fids||!fids.length)return true;
+  if(kind==="clean")return false;
+  var ids=kind==="proc"?procFields(o):(o.fieldIds||[]);
+  return ids.some(function(id){return fids.indexOf(id)>-1;});
+}
+function recordsOn(date,fids){
   var out=[];
-  store.logs.forEach(function(o){if(o.date===date)out.push({kind:"log",o:o});});
-  store.procs.forEach(function(o){if(o.date===date)out.push({kind:"proc",o:o});});
-  store.grades.forEach(function(o){if(o.date===date)out.push({kind:"grade",o:o});});
-  store.cleans.forEach(function(o){if(o.date===date)out.push({kind:"clean",o:o});});
+  [["log",store.logs],["proc",store.procs],["grade",store.grades],["clean",store.cleans]].forEach(function(p){
+    p[1].forEach(function(o){if(o.date===date&&inFields(p[0],o,fids))out.push({kind:p[0],o:o});});
+  });
   return out;
 }
 /* every record dated from..to (inclusive, YYYY-MM-DD), oldest first */
-function recordsBetween(from,to){
-  var pick=function(l){
-    return l.filter(function(o){return o.date&&o.date>=from&&o.date<=to;})
+function recordsBetween(from,to,fids){
+  var pick=function(kind,l){
+    return l.filter(function(o){return o.date&&o.date>=from&&o.date<=to&&inFields(kind,o,fids);})
             .sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:(a.updatedAt||0)-(b.updatedAt||0);});
   };
-  return {log:pick(store.logs),proc:pick(store.procs),grade:pick(store.grades),clean:pick(store.cleans)};
+  return {log:pick("log",store.logs),proc:pick("proc",store.procs),grade:pick("grade",store.grades),clean:pick("clean",store.cleans)};
 }
 function monthRange(y,m){return [y+"-"+p2(m+1)+"-01",y+"-"+p2(m+1)+"-"+p2(new Date(y,m+1,0).getDate())];}
 /* one short line per record for the calendar cells */
@@ -4091,21 +4105,28 @@ var PRINT_COLS={
 };
 var ROW_OF={log:logRow,proc:procRow,grade:gradeRow,clean:cleanRow};
 var ALL_KINDS=["log","proc","grade","clean"];
-function pdfMonthRecords(y,m,kinds){
+/* the chosen fields as a title suffix and a file-name part */
+function fieldTag(fids){
+  if(!fids||!fids.length)return {ja:"",en:"",file:""};
+  return {ja:"　圃場："+joinJa(fids,fieldOf),en:" — fields: "+(joinEn(fids,fieldOf)||joinJa(fids,fieldOf)),
+          file:"_"+fids.map(function(id){return fieldOf(id).ja||id;}).join("・")};
+}
+function pdfMonthRecords(y,m,kinds,fids){
   var rg=monthRange(y,m);
-  pdfRecords(rg[0],rg[1],y+"年"+(m+1)+"月",MONTHS_EN[m]+" "+y,y+"-"+p2(m+1),kinds,false);
+  pdfRecords(rg[0],rg[1],y+"年"+(m+1)+"月",MONTHS_EN[m]+" "+y,y+"-"+p2(m+1),kinds,false,fids);
 }
 /* the application year: October of the year before to September */
-function pdfYearRecords(year,kinds){
+function pdfYearRecords(year,kinds,fids){
   pdfRecords((year-1)+"-10-01",year+"-09-30",year+"年度（"+(year-1)+"年10月〜"+year+"年9月）",
-    "Year "+(year-1)+"/10 – "+year+"/9",year+"年度",kinds,true);
+    "Year "+(year-1)+"/10 – "+year+"/9",year+"年度",kinds,true,fids);
 }
-function pdfRecords(from,to,label,labelEn,fileTag,kinds,longDates){
+function pdfRecords(from,to,label,labelEn,fileTag,kinds,longDates,fids){
   kinds=kinds&&kinds.length?kinds:ALL_KINDS;
-  var r=recordsBetween(from,to);
-  printDoc("作業記録_"+fileTag,true,function(area){
+  if(fids&&fids.length)kinds=kinds.filter(function(k){return k!=="clean";});
+  var r=recordsBetween(from,to,fids),ft=fieldTag(fids);
+  printDoc("作業記録_"+fileTag+ft.file,true,function(area){
     pLongDates=!!longDates;
-    pHead(area,"作業記録 "+label,"Work records — "+labelEn);
+    pHead(area,"作業記録 "+label+ft.ja,"Work records — "+labelEn+ft.en);
     var kg=0;r.log.forEach(function(l){var q=l.qtyByField||{};Object.keys(q).forEach(function(k){kg+=parseFloat(q[k])||0;});});
     var parts=[];
     if(kinds.indexOf("log")>-1)parts.push("栽培 "+r.log.length+"件（収穫 "+fmtKg(kg)+" kg）");
@@ -4126,9 +4147,10 @@ function pdfRecords(from,to,label,labelEn,fileTag,kinds,longDates){
     pLongDates=false;
   });
 }
-function pdfMonthCalendar(y,m){
-  printDoc("作業カレンダー_"+y+"-"+p2(m+1),true,function(area){
-    pHead(area,"作業カレンダー "+y+"年"+(m+1)+"月","Work calendar — "+MONTHS_EN[m]+" "+y);
+function pdfMonthCalendar(y,m,fids){
+  var ft=fieldTag(fids);
+  printDoc("作業カレンダー_"+y+"-"+p2(m+1)+ft.file,true,function(area){
+    pHead(area,"作業カレンダー "+y+"年"+(m+1)+"月"+ft.ja,"Work calendar — "+MONTHS_EN[m]+" "+y+ft.en);
     var t=el("table","p-cal"),hr=el("tr");
     WD_JA.forEach(function(w,i){var c=el("th",i===0?"sun":i===6?"sat":null);c.appendChild(el("span",null,w));c.appendChild(el("span","p-en"," "+WD_EN[i]));hr.appendChild(c);});
     var th=el("thead");th.appendChild(hr);t.appendChild(th);
@@ -4137,7 +4159,7 @@ function pdfMonthCalendar(y,m){
     for(var d=1;d<=days;d++){
       var ds=y+"-"+p2(m+1)+"-"+p2(d),wd=(first+d-1)%7,c=el("td");
       c.appendChild(el("div","dn"+(wd===0?" sun":wd===6?" sat":""),String(d)));
-      recordsOn(ds).forEach(function(r){c.appendChild(el("div","ent k-"+r.kind,shortLabel(r.kind,r.o)));});
+      recordsOn(ds,fids).forEach(function(r){c.appendChild(el("div","ent k-"+r.kind,shortLabel(r.kind,r.o)));});
       row.appendChild(c);
       if(wd===6){tb.appendChild(row);row=el("tr");}
     }
@@ -4169,33 +4191,52 @@ function tableSheet(name,heads,rows,widths){
 }
 var XLSX_WIDTHS={log:[12,18,18,16,14,14,14,24,24],proc:[12,16,12,18,16,14,10,14,24],
                  grade:[12,12,14,22,14,14,10,14,24],clean:[12,20,12,14,24,14,14,24]};
-function xlsxRecords(from,to,fileTag,kinds){
+function xlsxRecords(from,to,fileTag,kinds,fids){
   kinds=kinds&&kinds.length?kinds:ALL_KINDS;
-  var r=recordsBetween(from,to),sheets=[];
+  if(fids&&fids.length)kinds=kinds.filter(function(k){return k!=="clean";});
+  var r=recordsBetween(from,to,fids),sheets=[];
   ALL_KINDS.filter(function(k){return kinds.indexOf(k)>-1;}).forEach(function(k){
     /* Excel gets the plain date so the column sorts and filters as a date */
     var rows=r[k].map(function(o){var row=ROW_OF[k](o);row[0]=o.date;return row;});
     sheets.push(tableSheet(KIND_LABEL[k].ja+"の記録",PRINT_COLS[k],rows,XLSX_WIDTHS[k]));
   });
-  downloadXlsx("作業記録_"+fileTag+".xlsx",sheets);
+  downloadXlsx("作業記録_"+fileTag+fieldTag(fids).file+".xlsx",sheets);
 }
 /* the calendar as one row per day — easier to use in Excel than a 7-column grid */
-function xlsxCalendar(y,m){
+function xlsxCalendar(y,m,fids){
   var heads=[["日付","Date"],["曜日","Day"]].concat(ALL_KINDS.map(function(k){return [KIND_LABEL[k].ja,KIND_LABEL[k].en];}));
   var rows=[],days=new Date(y,m+1,0).getDate();
   for(var d=1;d<=days;d++){
-    var ds=y+"-"+p2(m+1)+"-"+p2(d),recs=recordsOn(ds);
+    var ds=y+"-"+p2(m+1)+"-"+p2(d),recs=recordsOn(ds,fids);
     var wd=new Date(y,m,d).getDay();
     rows.push([ds,WD_JA[wd]+" "+WD_EN[wd]].concat(ALL_KINDS.map(function(k){
       return recs.filter(function(x){return x.kind===k;}).map(function(x){return shortLabel(k,x.o);}).join("、");
     })));
   }
-  downloadXlsx("作業カレンダー_"+y+"-"+p2(m+1)+".xlsx",
+  downloadXlsx("作業カレンダー_"+y+"-"+p2(m+1)+fieldTag(fids).file+".xlsx",
     [tableSheet(y+"年"+(m+1)+"月",heads,rows,[12,8,30,24,20,20])]);
 }
 
+/* A-J on its own: one sheet per applied field, laid out cell for cell like the
+   official form, for the chosen fields (or every applied field) */
+function exportAJ(year,fids,fmt){
+  var data=appData(year).filter(function(d){return !fids||!fids.length||fids.indexOf(d.field.id)>-1;});
+  if(!data.length){toast({ja:"選んだ圃場に申請中の圃場がありません(A-Jは申請圃場だけです)",en:"None of the chosen fields is applied for — A-J covers applied fields only"});return;}
+  var sheets=data.map(function(d){return ajSheet(d,year);});
+  var name="A-J_"+year+"年度"+fieldTag(fids).file;
+  if(fmt==="xlsx"){downloadXlsx(name+".xlsx",sheets);return;}
+  printDoc(name,true,function(area){
+    sheets.forEach(function(sh){
+      var sec=el("section","p-page");
+      sec.appendChild(el("h2",null,sh.name));
+      sec.appendChild(sheetTable(sh));
+      area.appendChild(sec);
+    });
+  });
+}
+
 /* ---------- export tab: every document, as PDF or Excel ---------- */
-var xY=null,xM=null,xKinds=ALL_KINDS.slice(),xFmt="pdf";
+var xY=null,xM=null,xKinds=ALL_KINDS.slice(),xFmt="pdf",xFields=[];
 try{if(localStorage.getItem(KEY+"_exportFmt")==="xlsx")xFmt="xlsx";}catch(e){}
 var FORMATS=[{k:"pdf",ja:"PDF",en:"PDF"},{k:"xlsx",ja:"Excel",en:"Excel (.xlsx)"}];
 function renderPdfView(){
@@ -4220,7 +4261,15 @@ function renderPdfView(){
       toggle(xKinds,k);renderPdfView();
     }));
   });
-  var rg=monthRange(xY,xM),r=recordsBetween(rg[0],rg[1]);
+  var fc2=document.getElementById("xFields");fc2.textContent="";
+  fc2.appendChild(chipEl("すべての圃場","All fields",!xFields.length,function(){xFields=[];renderPdfView();}));
+  store.fields.forEach(function(f){
+    if(f.status==="retired")return;
+    var c=chipEl(f.ja||f.en,f.en,xFields.indexOf(f.id)>-1,function(){toggle(xFields,f.id);renderPdfView();});
+    if(!isApplied(f))c.classList.add("unapplied");
+    fc2.appendChild(c);
+  });
+  var rg=monthRange(xY,xM),r=recordsBetween(rg[0],rg[1],xFields);
   var cnt=document.getElementById("xCount");cnt.textContent="";
   bi(cnt,"この月の記録：栽培 "+r.log.length+"件・加工 "+r.proc.length+"件・格付 "+r.grade.length+"件・洗浄 "+r.clean.length+"件",
     "This month: field "+r.log.length+" · processing "+r.proc.length+" · grading "+r.grade.length+" · cleaning "+r.clean.length);
@@ -4434,16 +4483,19 @@ document.getElementById("pdfApp").onclick=function(){
 document.getElementById("xPrev").onclick=function(){moveXMonth(-1);};
 document.getElementById("xNext").onclick=function(){moveXMonth(1);};
 document.getElementById("xMonth").onclick=function(){
-  if(xFmt==="xlsx"){var rg=monthRange(xY,xM);xlsxRecords(rg[0],rg[1],xY+"-"+p2(xM+1),xKinds);}
-  else pdfMonthRecords(xY,xM,xKinds);
+  if(xFmt==="xlsx"){var rg=monthRange(xY,xM);xlsxRecords(rg[0],rg[1],xY+"-"+p2(xM+1),xKinds,xFields);}
+  else pdfMonthRecords(xY,xM,xKinds,xFields);
 };
 document.getElementById("xCal").onclick=function(){
-  if(xFmt==="xlsx")xlsxCalendar(xY,xM);else pdfMonthCalendar(xY,xM);
+  if(xFmt==="xlsx")xlsxCalendar(xY,xM,xFields);else pdfMonthCalendar(xY,xM,xFields);
 };
 document.getElementById("xYearRec").onclick=function(){
   var y=parseInt(document.getElementById("xYear").value,10);if(!y)return;
-  if(xFmt==="xlsx")xlsxRecords((y-1)+"-10-01",y+"-09-30",y+"年度",xKinds);
-  else pdfYearRecords(y,xKinds);
+  if(xFmt==="xlsx")xlsxRecords((y-1)+"-10-01",y+"-09-30",y+"年度",xKinds,xFields);
+  else pdfYearRecords(y,xKinds,xFields);
+};
+document.getElementById("xAJ").onclick=function(){
+  var y=parseInt(document.getElementById("xYear").value,10);if(y)exportAJ(y,xFields,xFmt);
 };
 document.getElementById("xApp").onclick=function(){
   var y=parseInt(document.getElementById("xYear").value,10);if(!y)return;
