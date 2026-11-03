@@ -285,6 +285,13 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-
 .dayadd .btn{padding:7px 4px;background:var(--surface)}
 .dayadd .btn .ja{font-size:13px}
 .dayadd .btn .en{font-size:10.5px}
+.editrow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px}
+.editrow .tag{font-size:11.5px;color:var(--muted);min-width:0}
+.editrow .btn{margin-left:auto;padding:6px 14px;flex:none;white-space:nowrap}
+.editnote{max-width:720px;margin:0 auto 8px;padding:8px 12px;border-radius:10px;background:var(--warn-soft);color:var(--warn);
+  font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px}
+.editnote .en{font-weight:500;margin-left:6px;opacity:.85}
+.editnote .btn{margin-left:auto;padding:5px 10px;background:var(--surface)}
 .mview .mbtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
 .mview .mbtns .btn{flex:1 1 200px}
 @media (min-width:700px){
@@ -1139,6 +1146,8 @@ p.secsub .en{display:block;color:var(--faint)}
 </main>
 
 <div class="savebar" id="savebar">
+  <div class="editnote hidden" id="editNote"><span id="editNoteText"></span>
+    <button class="btn ghost" type="button" id="editCancel"><span class="ja">直すのをやめる</span><span class="en">Stop editing</span></button></div>
   <div class="inner">
     <button class="btn primary" id="save"><span class="ja">記録する</span><span class="en">Save record</span></button>
     <button class="btn ghost" id="reset"><span class="ja">消す</span><span class="en">Clear</span></button>
@@ -1282,6 +1291,7 @@ var MSG={
   needField:{ja:"圃場を選んでください",en:"Please choose a field"},
   saved:{ja:"記録しました",en:"Record saved"},
   savedLocal:{ja:"端末に保存しました",en:"Saved on this device"},
+  edited:{ja:"記録を直しました",en:"Record updated"},
   noLast:{ja:"まだ前回の記録がありません",en:"No earlier record yet"},
   copied:{ja:"前回の内容を入れました",en:"Filled in from the last record"},
   syncOn:{ja:"同期を再開しました",en:"Syncing resumed"},
@@ -1927,15 +1937,17 @@ function saveLog(){
     log.cleanedMachineIds=draft.machineIds.slice();
     log.cleaning=draft.machineIds.map(function(id){return machineOf(id).ja+"："+cleanMethodOf(id);}).join("、");
   }
-  store.logs.push(log);persist();pushPending();setStatus();renderList();
+  var edited=commitEdit("log",store.logs,log);
+  persist();pushPending();setStatus();renderList();
   var wasOnline=online();
   draft={date:log.date,fieldIds:[],tasks:[],machineIds:[],cleaned:[],weather:"",material:"none",
          workers:log.workers.slice(),qtyByField:{}};
   document.getElementById("memo").value="";
   document.getElementById("materialNote").value="";
   renderEntryChips();updateLot();
-  toast(wasOnline?MSG.saved:MSG.savedLocal);
+  toast(edited?MSG.edited:wasOnline?MSG.saved:MSG.savedLocal);
   busy=false;
+  if(edited)backToDay(log.date);
 }
 
 /* ---------- lookups ---------- */
@@ -2299,7 +2311,7 @@ function organicOf(k){return dict(ORGANIC,k)||ORGANIC[0];}
 /* lots already recorded here, offered as input to a later stage
    (finishing, sorting, milling — each can take any earlier lot) */
 function inputLots(){
-  return store.procs.slice().sort(function(a,b){return a.date<b.date?1:-1;});
+  return store.procs.filter(function(p){return p.id!==editing.proc;}).sort(function(a,b){return a.date<b.date?1:-1;});
 }
 function procById(id){for(var i=0;i<store.procs.length;i++){if(store.procs[i].id===id)return store.procs[i];}return null;}
 
@@ -2560,15 +2572,17 @@ function saveProc(){
     memo:document.getElementById("pMemo").value,
     updatedAt:Date.now(),synced:false
   };
-  store.procs.push(rec);persist();pushProcs();setStatus();renderList();
+  var edited=commitEdit("proc",store.procs,rec);
+  persist();pushProcs();setStatus();renderList();
   var wasOnline=online();
   pdraft={date:date,stage:rec.stage,workers:rec.workers.slice(),factory:rec.factory,
           fieldIds:[],leaf:{},parents:[],ext:false,extName:"",extKg:"",
           teas:[],organic:"organic",out:""};
   document.getElementById("pMemo").value="";
   renderProc();
-  toast(wasOnline?MSG.saved:MSG.savedLocal);
+  toast(edited?MSG.edited:wasOnline?MSG.saved:MSG.savedLocal);
   busy=false;
+  if(edited)backToDay(rec.date);
 }
 
 function pushProcs(){scheduleSync();}
@@ -2669,7 +2683,7 @@ function gradableLots(){
 function gradedFrom(procId){
   var t=0;
   store.grades.forEach(function(g){
-    if(g.procId===procId&&g.result==="pass")t+=(g.qty||0);
+    if(g.procId===procId&&g.result==="pass"&&g.id!==editing.grade)t+=(g.qty||0);
   });
   return t;
 }
@@ -2841,14 +2855,16 @@ function saveGrade(){
     memo:document.getElementById("gMemo").value,
     updatedAt:Date.now(),synced:false
   };
-  store.grades.push(rec);persist();pushGrades();setStatus();renderList();renderMaster();
+  var edited=commitEdit("grade",store.grades,rec);
+  persist();pushGrades();setStatus();renderList();renderMaster();
   var wasOnline=online();
   gdraft={date:date,workers:rec.workers.slice(),lot:"",checks:[],gram:rec.gram||"",
           packs:"",mark:rec.mark,seals:"",result:"pass"};
   document.getElementById("gMemo").value="";
   renderGrade();
-  toast(wasOnline?MSG.saved:MSG.savedLocal);
+  toast(edited?MSG.edited:wasOnline?MSG.saved:MSG.savedLocal);
   busy=false;
+  if(edited)backToDay(rec.date);
 }
 
 function pushGrades(){
@@ -3057,14 +3073,16 @@ function saveClean(){
     memo:document.getElementById("cMemo").value,
     updatedAt:Date.now(),synced:false
   };
-  store.cleans.push(rec);persist();scheduleSync();setStatus();renderList();
+  var edited=commitEdit("clean",store.cleans,rec);
+  persist();scheduleSync();setStatus();renderList();
   var wasOnline=online();
   cdraft={date:date,factory:rec.factory,equip:[],equipOther:"",prev:"nonorganic",
           methods:[],method:"",methodEdited:false,workers:rec.workers.slice(),result:"ok"};
   document.getElementById("cMemo").value="";
   renderClean();
-  toast(wasOnline?MSG.saved:MSG.savedLocal);
+  toast(edited?MSG.edited:wasOnline?MSG.saved:MSG.savedLocal);
   busy=false;
+  if(edited)backToDay(rec.date);
 }
 function cleanCard(c){
   var d=el("div","log clean");
@@ -4172,7 +4190,16 @@ function renderMonthView(){
     if(!recs2.length){
       var e=el("p","hint");bi(e,"この日の記録はありません。","No records on this day.");box.appendChild(e);
     }
-    recs2.forEach(function(r){box.appendChild(cardFor(r));});
+    recs2.forEach(function(r){
+      var c=cardFor(r),row=el("div","editrow");
+      if((r.o.edits||[]).length){
+        var last=r.o.edits[r.o.edits.length-1];
+        row.appendChild(el("span","tag","修正 "+r.o.edits.length+"回 · "+(last.by||"")+" "+fmtStamp(last.at)+" / Edited"));
+      }
+      var eb=bi(el("button","btn ghost"),"直す","Edit");eb.type="button";
+      eb.onclick=function(){editRecord(r.kind,r.o);};
+      row.appendChild(eb);c.appendChild(row);box.appendChild(c);
+    });
   }
 }
 /* open an entry form with its date set to the day picked on the calendar */
@@ -4187,6 +4214,113 @@ function addOnDate(view,ds){
     showView(view);
   }
   toast({ja:fmtDate(ds).split(" · ")[0]+" の記録を入力します",en:"Entering a record for "+ds});
+}
+/* ---------- editing a saved record from the calendar ----------
+   The record is overwritten in place (same id, newer updatedAt, so sync carries it
+   over). Each change keeps who, when and the previous content in record.edits. */
+var editing={log:null,proc:null,grade:null,clean:null};
+var VIEW_KIND={entry:"log",proc:"proc",grade:"grade",clean:"clean"};
+function fmtStamp(t){
+  var d=new Date(t||0);
+  return (d.getMonth()+1)+"/"+d.getDate()+" "+p2(d.getHours())+":"+p2(d.getMinutes());
+}
+function strMap(o){var r={};Object.keys(o||{}).forEach(function(k){r[k]=String(o[k]);});return r;}
+function editRecord(kind,o){
+  editing[kind]=o.id;
+  if(kind==="log"){
+    draft={date:o.date,fieldIds:(o.fieldIds||[]).slice(),tasks:(o.tasks||[]).slice(),
+           machineIds:(o.machineIds||[]).slice(),cleaned:(o.cleanedMachineIds||[]).slice(),
+           weather:o.weather||"",material:o.material||"none",workers:(o.workers||[]).slice(),
+           qtyByField:strMap(o.qtyByField)};
+    document.getElementById("date").value=o.date;
+    document.getElementById("materialNote").value=o.materialNote||"";
+    document.getElementById("memo").value=o.memo||"";
+    showView("entry");renderEntryChips();updateLot();
+  }else if(kind==="proc"){
+    pdraft={date:o.date,stage:o.stage,workers:(o.workers||[]).slice(),factory:o.factory,
+            fieldIds:(o.fieldIds||[]).slice(),leaf:strMap(o.leaf),parents:(o.parents||[]).slice(),
+            ext:!!o.ext,extName:o.extName||"",extKg:o.extKg?String(o.extKg):"",
+            teas:(o.teas||[]).slice(),organic:o.organic||"organic",out:o.out!=null?String(o.out):""};
+    document.getElementById("pExtName").value=o.extName||"";
+    document.getElementById("pMemo").value=o.memo||"";
+    showView("proc");
+  }else if(kind==="grade"){
+    gdraft={date:o.date,workers:(o.workers||[]).slice(),lot:o.procId||"",checks:(o.checks||[]).slice(),
+            gram:o.gram?String(o.gram):"",packs:o.packs?String(o.packs):"",mark:o.mark||"seal",
+            seals:o.seals?String(o.seals):"",result:o.result||"pass"};
+    document.getElementById("gMemo").value=o.memo||"";
+    showView("grade");
+  }else{
+    cdraft={date:o.date,factory:o.factory,equip:(o.equip||[]).slice(),equipOther:o.equipOther||"",
+            prev:o.prev||"nonorganic",methods:(o.methods||[]).slice(),method:o.method||"",methodEdited:true,
+            workers:(o.workers||[]).slice(),result:o.result||"ok"};
+    document.getElementById("cMemo").value=o.memo||"";
+    showView("clean");
+  }
+  toast({ja:"直して「直して保存」を押してください",en:"Make the changes, then press Save changes"});
+}
+/* when a save is an edit, put rec in place of the old record and return true */
+function commitEdit(kind,list,rec){
+  var id=editing[kind];editing[kind]=null;
+  var old=null;
+  for(var i=0;i<list.length;i++){if(list[i].id===id){old=list[i];break;}}
+  if(!old){list.push(rec);updateEditNote();return false;}
+  var before={};
+  Object.keys(old).forEach(function(k){if(k!=="synced"&&k!=="edits")before[k]=old[k];});
+  /* lot numbers are what later stages point at, so keep them unless what they encode changed */
+  if(kind==="proc"&&old.lot&&old.stage===rec.stage&&old.organic===rec.organic&&old.date===rec.date)rec.lot=old.lot;
+  if(kind==="grade"&&old.lot&&old.date===rec.date)rec.lot=old.lot;
+  var merged={};
+  Object.keys(old).forEach(function(k){merged[k]=old[k];});
+  Object.keys(rec).forEach(function(k){merged[k]=rec[k];});
+  if(kind==="log"&&!rec.cleanedMachineIds){delete merged.cleanedMachineIds;delete merged.cleaning;}
+  merged.id=old.id;
+  merged.edits=(old.edits||[]).concat([{at:Date.now(),by:member||"",before:before}]);
+  list[list.indexOf(old)]=merged;
+  updateEditNote();
+  return true;
+}
+function cancelEdit(){
+  var kind=VIEW_KIND[currentView];
+  if(!kind||!editing[kind])return;
+  editing[kind]=null;
+  var t=today();
+  if(kind==="log"){
+    draft={date:t,fieldIds:[],tasks:[],machineIds:[],cleaned:[],weather:"",material:"none",workers:draft.workers.slice(),qtyByField:{}};
+    document.getElementById("date").value=t;
+    document.getElementById("memo").value="";document.getElementById("materialNote").value="";
+    renderEntryChips();updateLot();
+  }else if(kind==="proc"){
+    pdraft={date:t,stage:pdraft.stage,workers:pdraft.workers.slice(),factory:pdraft.factory,fieldIds:[],leaf:{},
+            parents:[],ext:false,extName:"",extKg:"",teas:[],organic:"organic",out:""};
+    document.getElementById("pMemo").value="";renderProc();
+  }else if(kind==="grade"){
+    gdraft={date:t,workers:gdraft.workers.slice(),lot:"",checks:[],gram:gdraft.gram,packs:"",mark:gdraft.mark,seals:"",result:"pass"};
+    document.getElementById("gMemo").value="";renderGrade();
+  }else{
+    cdraft={date:t,factory:cdraft.factory,equip:[],equipOther:"",prev:"nonorganic",
+            methods:[],method:"",methodEdited:false,workers:cdraft.workers.slice(),result:"ok"};
+    document.getElementById("cMemo").value="";renderClean();
+  }
+  updateEditNote();
+  toast({ja:"直すのをやめました（記録はそのままです）",en:"Stopped editing — the record is unchanged"});
+}
+function updateEditNote(){
+  var kind=VIEW_KIND[currentView],id=kind&&editing[kind];
+  var note=document.getElementById("editNote"),save=document.getElementById("save");
+  note.classList.toggle("hidden",!id);
+  save.textContent="";
+  if(id){
+    var d=kind==="log"?draft.date:kind==="proc"?pdraft.date:kind==="grade"?gdraft.date:cdraft.date;
+    var t=document.getElementById("editNoteText");t.textContent="";
+    bi(t,fmtDate(d||"").split(" · ")[0]+" の記録を直しています","Editing a saved record");
+    bi(save,"直して保存","Save changes");
+  }else bi(save,"記録する","Save record");
+}
+function backToDay(ds){
+  mvY=+ds.slice(0,4);mvM=+ds.slice(5,7)-1;mvSel=ds;
+  showView("list");
+  var m=document.getElementById("monthView");if(m)m.scrollIntoView({block:"start"});
 }
 function moveMonth(n){
   mvM+=n;if(mvM<0){mvM=11;mvY--;}if(mvM>11){mvM=0;mvY++;}
@@ -4527,6 +4661,7 @@ function showView(v){
   if(v==="list")renderList();
   if(v==="master"){renderMaster();renderPlan();renderAppCard();}
   if(v==="pdf")renderPdfView();
+  updateEditNote();
   window.scrollTo(0,0);
 }
 
@@ -4565,6 +4700,7 @@ document.getElementById("addSeal").onclick=function(){
 };
 document.getElementById("pdate").onchange=function(){pdraft.date=this.value;renderProc();};
 document.getElementById("pOut").oninput=function(){pdraft.out=this.value;renderProcTotals();};
+document.getElementById("editCancel").onclick=cancelEdit;
 document.getElementById("reset").onclick=function(){
   if(currentView==="grade"){
     gdraft.lot="";gdraft.checks=[];gdraft.packs="";gdraft.seals="";gdraft.result="pass";
