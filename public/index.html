@@ -288,6 +288,17 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-
 .editrow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px}
 .editrow .tag{font-size:11.5px;color:var(--muted);min-width:0}
 .editrow .btn{margin-left:auto;padding:6px 14px;flex:none;white-space:nowrap}
+.sheet{position:fixed;inset:0;z-index:25;background:var(--bg);overflow:auto;padding:0 16px 150px;overscroll-behavior:contain}
+.sheetin{max-width:600px;margin:0 auto}
+.sheethead{position:sticky;top:0;z-index:2;background:var(--bg);display:flex;align-items:center;gap:8px;
+  padding:12px 0;margin-bottom:12px;border-bottom:1px solid var(--line)}
+.sheethead .t{margin:0;flex:1;font-weight:700;font-size:15px}
+.sheethead .t .en{display:block;font-weight:500;font-size:12px;color:var(--muted)}
+.sheethead .btn{flex:none;padding:6px 12px}
+.hist{list-style:none;margin:10px 0 0;padding:8px 0 0;border-top:1px dashed var(--line);font-size:12.5px;color:var(--muted)}
+.hist li{margin:2px 0}
+#mDay .log{cursor:pointer}
+#sheetForm{margin-top:14px}
 .editnote{max-width:720px;margin:0 auto 8px;padding:8px 12px;border-radius:10px;background:var(--warn-soft);color:var(--warn);
   font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px}
 .editnote .en{font-weight:500;margin-left:6px;opacity:.85}
@@ -1156,6 +1167,16 @@ p.secsub .en{display:block;color:var(--faint)}
 </div>
 <div class="toast" id="toast"></div>
 <div id="printArea"></div>
+<div class="sheet hidden" id="recSheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+  <div class="sheetin">
+    <div class="sheethead">
+      <p class="t" id="sheetTitle"></p>
+      <button class="btn ghost" type="button" id="sheetClose"><span class="ja">閉じる</span><span class="en">Close</span></button>
+    </div>
+    <div id="sheetRec"></div>
+    <div id="sheetForm"></div>
+  </div>
+</div>
 
 <script>
 (function(){
@@ -4197,7 +4218,8 @@ function renderMonthView(){
         row.appendChild(el("span","tag","修正 "+r.o.edits.length+"回 · "+(last.by||"")+" "+fmtStamp(last.at)+" / Edited"));
       }
       var eb=bi(el("button","btn ghost"),"直す","Edit");eb.type="button";
-      eb.onclick=function(){editRecord(r.kind,r.o);};
+      eb.onclick=function(e){e.stopPropagation();openRecord(r.kind,r.o.id);editRecord(r.kind,r.o);};
+      c.onclick=function(){openRecord(r.kind,r.o.id);};
       row.appendChild(eb);c.appendChild(row);box.appendChild(c);
     });
   }
@@ -4235,7 +4257,7 @@ function editRecord(kind,o){
     document.getElementById("date").value=o.date;
     document.getElementById("materialNote").value=o.materialNote||"";
     document.getElementById("memo").value=o.memo||"";
-    showView("entry");renderEntryChips();updateLot();
+    mountForm("entry");
   }else if(kind==="proc"){
     pdraft={date:o.date,stage:o.stage,workers:(o.workers||[]).slice(),factory:o.factory,
             fieldIds:(o.fieldIds||[]).slice(),leaf:strMap(o.leaf),parents:(o.parents||[]).slice(),
@@ -4243,21 +4265,20 @@ function editRecord(kind,o){
             teas:(o.teas||[]).slice(),organic:o.organic||"organic",out:o.out!=null?String(o.out):""};
     document.getElementById("pExtName").value=o.extName||"";
     document.getElementById("pMemo").value=o.memo||"";
-    showView("proc");
+    mountForm("proc");
   }else if(kind==="grade"){
     gdraft={date:o.date,workers:(o.workers||[]).slice(),lot:o.procId||"",checks:(o.checks||[]).slice(),
             gram:o.gram?String(o.gram):"",packs:o.packs?String(o.packs):"",mark:o.mark||"seal",
             seals:o.seals?String(o.seals):"",result:o.result||"pass"};
     document.getElementById("gMemo").value=o.memo||"";
-    showView("grade");
+    mountForm("grade");
   }else{
     cdraft={date:o.date,factory:o.factory,equip:(o.equip||[]).slice(),equipOther:o.equipOther||"",
             prev:o.prev||"nonorganic",methods:(o.methods||[]).slice(),method:o.method||"",methodEdited:true,
             workers:(o.workers||[]).slice(),result:o.result||"ok"};
     document.getElementById("cMemo").value=o.memo||"";
-    showView("clean");
+    mountForm("clean");
   }
-  toast({ja:"直して「直して保存」を押してください",en:"Make the changes, then press Save changes"});
 }
 /* when a save is an edit, put rec in place of the old record and return true */
 function commitEdit(kind,list,rec){
@@ -4320,7 +4341,76 @@ function updateEditNote(){
 function backToDay(ds){
   mvY=+ds.slice(0,4);mvM=+ds.slice(5,7)-1;mvSel=ds;
   showView("list");
+  /* edited in the sheet: stay there and show the record as it now reads */
+  if(sheet.kind){unmountForm();renderSheet();document.getElementById("recSheet").scrollTop=0;return;}
   var m=document.getElementById("monthView");if(m)m.scrollIntoView({block:"start"});
+}
+/* ---------- the record sheet: one record shown over the calendar, edited in place ---------- */
+var sheet={kind:null,id:null,card:null,home:null,next:null};
+var KIND_NAME={log:["栽培","Field work"],proc:["加工","Processing"],grade:["格付","Grading"],clean:["洗浄・切替","Cleaning"]};
+function listOf(kind){return kind==="log"?store.logs:kind==="proc"?store.procs:kind==="grade"?store.grades:store.cleans;}
+function findRec(kind,id){var l=listOf(kind);for(var i=0;i<l.length;i++){if(l[i].id===id)return l[i];}return null;}
+function openRecord(kind,id){
+  sheet.kind=kind;sheet.id=id;
+  document.getElementById("recSheet").classList.remove("hidden");
+  document.body.style.overflow="hidden";
+  renderSheet();
+  document.getElementById("recSheet").scrollTop=0;
+}
+function renderSheet(){
+  var o=findRec(sheet.kind,sheet.id);if(!o){closeSheet();return;}
+  var t=document.getElementById("sheetTitle");t.textContent="";
+  var nm=KIND_NAME[sheet.kind];
+  t.appendChild(el("span",null,fmtDate(o.date).split(" · ")[0]+"　"+nm[0]+(sheet.card?" を直す":"")));
+  t.appendChild(el("span","en",nm[1]+(sheet.card?" — editing":"")+" · "+o.date));
+  var box=document.getElementById("sheetRec");box.textContent="";
+  var c=cardFor({kind:sheet.kind,o:o});
+  if((o.edits||[]).length){
+    var h=el("ul","hist");
+    o.edits.forEach(function(e,i){
+      h.appendChild(el("li",null,"修正 "+(i+1)+"回目 · "+(e.by||"—")+" · "+fmtStamp(e.at)+" / Edit "+(i+1)));
+    });
+    c.appendChild(h);
+  }
+  box.appendChild(c);
+  if(!sheet.card){
+    var row=el("div","editrow");
+    var eb=bi(el("button","btn primary"),"この記録を直す","Edit this record");eb.type="button";
+    eb.onclick=function(){editRecord(sheet.kind,findRec(sheet.kind,sheet.id));};
+    row.appendChild(eb);box.appendChild(row);
+  }
+}
+/* borrow the entry form of that kind and show it under the record */
+function mountForm(view){
+  var sec=document.getElementById("view-"+view),card=sec.querySelector(".card");
+  sheet.home=sec;sheet.next=card.nextSibling;sheet.card=card;
+  document.getElementById("sheetForm").appendChild(card);
+  currentView=view;
+  document.getElementById("savebar").classList.remove("hidden");
+  document.getElementById("copyLast").classList.add("hidden");
+  if(view==="entry"){renderEntryChips();updateLot();}
+  else if(view==="proc")renderProc();
+  else if(view==="grade")renderGrade();
+  else renderClean();
+  updateEditNote();renderSheet();
+}
+function unmountForm(){
+  if(!sheet.card)return;
+  sheet.home.insertBefore(sheet.card,sheet.next);
+  sheet.card=null;sheet.home=null;sheet.next=null;
+}
+function closeSheet(){
+  unmountForm();
+  sheet.kind=null;sheet.id=null;
+  document.getElementById("recSheet").classList.add("hidden");
+  document.body.style.overflow="";
+  showView("list");
+}
+/* closing mid-edit drops the changes; the saved record stays as it was */
+function leaveSheet(){
+  var kind=VIEW_KIND[currentView];
+  if(sheet.card&&kind&&editing[kind])cancelEdit();
+  closeSheet();
 }
 function moveMonth(n){
   mvM+=n;if(mvM<0){mvM=11;mvY--;}if(mvM>11){mvM=0;mvY++;}
@@ -4700,7 +4790,11 @@ document.getElementById("addSeal").onclick=function(){
 };
 document.getElementById("pdate").onchange=function(){pdraft.date=this.value;renderProc();};
 document.getElementById("pOut").oninput=function(){pdraft.out=this.value;renderProcTotals();};
-document.getElementById("editCancel").onclick=cancelEdit;
+document.getElementById("editCancel").onclick=function(){if(sheet.kind)leaveSheet();else cancelEdit();};
+document.getElementById("sheetClose").onclick=leaveSheet;
+document.getElementById("recSheet").addEventListener("keydown",function(e){
+  if(e.key==="Escape"&&!e.target.closest(".mcal"))leaveSheet();
+});
 document.getElementById("reset").onclick=function(){
   if(currentView==="grade"){
     gdraft.lot="";gdraft.checks=[];gdraft.packs="";gdraft.seals="";gdraft.result="pass";
