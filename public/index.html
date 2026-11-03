@@ -400,6 +400,15 @@ p.secsub .en{display:block;color:var(--faint)}
 .mcrow .nm .ja{display:block;font-size:14px;font-weight:600}
 .mcrow .nm .m{display:block;font-size:12px;color:var(--muted)}
 .mcrow .chip{flex:none}
+/* ---- cultivation plan rows: month · work · kg ---- */
+.prow{display:grid;grid-template-columns:62px minmax(0,1fr) 74px;gap:6px;align-items:center;
+  padding:6px 0;border-bottom:1px solid var(--line)}
+.prow:last-child{border-bottom:none}
+.prow .nm{line-height:1.3}
+.prow .nm .ja{display:block;font-size:13px;font-weight:600}
+.prow .nm .en{display:block;font-size:10.5px;color:var(--muted)}
+.prow input{padding:8px 9px}
+.prow input[type="number"]{text-align:right}
 /* ---- per-field harvest entry ---- */
 .qrow{
   display:flex;align-items:center;gap:10px;padding:9px 0;
@@ -1083,6 +1092,28 @@ p.secsub .en{display:block;color:var(--faint)}
     </div>
 
     <div class="card">
+      <h2 class="sec"><span class="ja">栽培の予定(A-J 計画書)</span><span class="en">Cultivation plan (A-J)</span></h2>
+      <p class="secsub">圃場ごと・月ごとの作業の予定です。ここに入れた予定が、継続申請書A-Jの「2.栽培計画書」に入ります。入力はその場で保存され、ほかの端末にも同期されます。<span class="en">The planned work for each field and month. The plan entered here goes into "2. Cultivation plan" on the A-J sheet. Changes save as you type and sync to the other devices.</span></p>
+      <div class="row">
+        <div class="field">
+          <label class="lb" for="planYear"><span class="ja">予定の年度</span><span class="en">Plan year</span></label>
+          <select id="planYear"></select>
+        </div>
+        <div class="field">
+          <label class="lb" for="planField"><span class="ja">圃場</span><span class="en">Field</span></label>
+          <select id="planField"></select>
+        </div>
+      </div>
+      <div id="planRows"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+        <button class="btn primary" type="button" id="planCopyAll"><span class="ja">前年度の予定を全圃場コピー</span><span class="en">Copy last year's plan, all fields</span></button>
+        <button class="btn" type="button" id="planCopyOne"><span class="ja">この圃場だけコピー</span><span class="en">Copy for this field only</span></button>
+        <button class="btn ghost" type="button" id="planFromActual"><span class="ja">前年度の実績から作る(全圃場)</span><span class="en">Build from last year's actual work (all fields)</span></button>
+      </div>
+      <p class="hint" id="planHint"></p>
+    </div>
+
+    <div class="card">
       <h2 class="sec"><span class="ja">継続申請書の下書き</span><span class="en">Renewal application draft</span></h2>
       <p class="secsub">記録から <strong>A-J(申請圃場の栽培履歴と計画書)</strong> を圃場ごとに作り、A-G(機械)・A-C(圃場一覧)とあわせて Excel で書き出します。申請年度は10月〜翌9月です。書式のセル位置は申請書と同じにしてあるので、そのまま提出するか、HOASの様式に貼り付けて使えます。<span class="en">Builds the A-J cultivation history and plan for every applied field, plus the machine and field lists, as one Excel file. The application year runs October to September, and the cells sit where they sit in the official sheet, so the file can be submitted as it is or pasted into the HOAS template.</span></p>
       <div class="field">
@@ -1358,8 +1389,10 @@ function load(){
   o.grades=o.grades||[];
   o.cleans=o.cleans||[];
   o.seals=o.seals||[];
+  o.plans=o.plans||{};
   if(o.mastersDirty==null)o.mastersDirty=true;   /* first run pushes the registers */
   if(o.sealsDirty==null)o.sealsDirty=false;
+  if(o.plansDirty==null)o.plansDirty=false;
   o.mastersUpdated=o.mastersUpdated||Date.now();
   return o;
 }
@@ -1519,8 +1552,12 @@ function sync(){
   if(store.sealsDirty){
     out.masters.seals={updatedAt:store.sealsUpdated||Date.now(),body:{entries:store.seals}};
   }
-  var pushed=out.records.slice(),mastersPushed=!!out.masters.all,sealsPushed=!!out.masters.seals;
-  var p=(pushed.length||mastersPushed||sealsPushed)
+  if(store.plansDirty){
+    out.masters.plans={updatedAt:store.plansUpdated||Date.now(),body:{years:store.plans}};
+  }
+  var pushed=out.records.slice(),mastersPushed=!!out.masters.all,sealsPushed=!!out.masters.seals,
+      plansPushed=!!out.masters.plans;
+  var p=(pushed.length||mastersPushed||sealsPushed||plansPushed)
     ? apiFetch("/api/sync",{method:"POST",body:out})
     : Promise.resolve({ok:true,data:{}});
   return p.then(function(res){
@@ -1532,6 +1569,7 @@ function sync(){
     });
     if(mastersPushed)store.mastersDirty=false;
     if(sealsPushed)store.sealsDirty=false;
+    if(plansPushed)store.plansDirty=false;
     persist();
     return apiFetch("/api/sync?since="+lastSync,{method:"GET"});
   }).then(function(res){
@@ -1559,6 +1597,10 @@ function sync(){
     if(m.seals&&m.seals.body&&(m.seals.updatedAt||0)>(store.sealsUpdated||0)){
       store.seals=m.seals.body.entries||[];store.sealsUpdated=m.seals.updatedAt;store.sealsDirty=false;changed=true;
       renderSeals();renderGrade();
+    }
+    if(m.plans&&m.plans.body&&(m.plans.updatedAt||0)>(store.plansUpdated||0)){
+      store.plans=m.plans.body.years||{};store.plansUpdated=m.plans.updatedAt;store.plansDirty=false;changed=true;
+      renderPlan();
     }
     if(d.now){lastSync=d.now;try{localStorage.setItem(KEY+"_since",String(lastSync));}catch(e){}}
     if(changed){persist();renderList();}
@@ -3534,6 +3576,96 @@ function monthWork(fieldId,y,m){
   });
   return {text:names.join("&"),kg:kg,material:material};
 }
+/* ---- cultivation plan ----
+   store.plans[year][fieldId][month] = {text, kg}; year is the application year
+   (Oct of year-1 … Sep of year) and month is 1-12, so a plan copies to the next
+   year unchanged. Synced as one "plans" master, newest wins. */
+function planOf(year,fieldId){
+  var p=store.plans[year]&&store.plans[year][fieldId];
+  if(!p)return null;
+  for(var k in p){if(p.hasOwnProperty(k)&&(p[k].text||p[k].kg))return p;}
+  return null;
+}
+function savePlans(){store.plansUpdated=Date.now();store.plansDirty=true;persist();scheduleSync();}
+function planYearNow(){var n=new Date();return n.getMonth()+1>=10?n.getFullYear()+1:n.getFullYear();}
+var planSel={year:null,field:null};
+function renderPlan(){
+  var ys=document.getElementById("planYear");if(!ys)return;
+  var cur=planYearNow();
+  if(planSel.year===null)planSel.year=cur;
+  var years={};years[cur-1]=1;years[cur]=1;years[cur+1]=1;years[planSel.year]=1;
+  Object.keys(store.plans).forEach(function(y){years[y]=1;});
+  ys.textContent="";
+  Object.keys(years).map(Number).sort(function(a,b){return b-a;}).forEach(function(y){
+    var o=document.createElement("option");o.value=y;
+    o.textContent=y+"年度（"+(y-1)+"年10月〜"+y+"年9月）"+(planOf2(y)?" ・予定あり":"");
+    ys.appendChild(o);
+  });
+  ys.value=planSel.year;
+  var fs=document.getElementById("planField"),fl=appliedFields();
+  if(!planSel.field||!fl.some(function(f){return f.id===planSel.field;}))planSel.field=fl.length?fl[0].id:null;
+  fs.textContent="";
+  fl.forEach(function(f){
+    var o=document.createElement("option");o.value=f.id;
+    o.textContent=(f.ja||f.en)+(planOf(planSel.year,f.id)?" ✓":"");
+    fs.appendChild(o);
+  });
+  fs.value=planSel.field||"";
+  var rows=document.getElementById("planRows");rows.textContent="";
+  if(!planSel.field)return;
+  var y=planSel.year,fid=planSel.field;
+  appMonths(y).forEach(function(mm){
+    var key=String(mm.m),cell=((store.plans[y]||{})[fid]||{})[key]||{};
+    var r=el("div","prow"),nm=el("span","nm");
+    nm.appendChild(el("span","ja",(mm.m===10||mm.m===1?mm.y+"年":"")+mm.m+"月"));
+    nm.appendChild(el("span","en",MONTHS_EN[mm.m-1].slice(0,3)+" "+mm.y));
+    var t=document.createElement("input");t.type="text";t.value=cell.text||"";
+    t.placeholder="作業 例: 草刈り&裾刈り";t.setAttribute("aria-label",mm.y+"年"+mm.m+"月 作業の予定 / planned work");
+    var k=document.createElement("input");k.type="number";k.inputMode="decimal";k.min="0";k.step="0.1";k.value=cell.kg||"";
+    k.placeholder="収穫 kg";k.setAttribute("aria-label",mm.y+"年"+mm.m+"月 収穫予定kg / planned harvest kg");
+    var put=function(){
+      store.plans[y]=store.plans[y]||{};store.plans[y][fid]=store.plans[y][fid]||{};
+      store.plans[y][fid][key]={text:t.value.trim(),kg:k.value};
+      savePlans();
+    };
+    t.oninput=put;k.oninput=put;
+    r.appendChild(nm);r.appendChild(t);r.appendChild(k);
+    rows.appendChild(r);
+  });
+  var h=document.getElementById("planHint");h.textContent="";
+  bi(h,"作業は「&」でつなぐとA-Jの書き方と同じになります(例: 草刈り&裾刈り)。「前年度の予定をコピー」は "+(y-1)+"年度の予定をこの年度にそのまま写します。",
+    "Join several jobs with \"&\" as the A-J form does. \"Copy last year's plan\" copies the "+(y-1)+" plan into this year as it is.");
+}
+function planOf2(year){var p=store.plans[year];if(!p)return false;for(var f in p){if(planOf(year,f))return true;}return false;}
+/* copy one year's plan into the next, for one field or all; asks before overwriting */
+function copyPlan(fromYear,toYear,fieldIds,fromActual){
+  var src={};
+  fieldIds.forEach(function(fid){
+    if(fromActual){
+      var months=appMonths(fromYear),m={},any=false;
+      months.forEach(function(mm){
+        var w=monthWork(fid,mm.y,mm.m);
+        if(w.text||w.kg){m[String(mm.m)]={text:w.text,kg:w.kg?String(Math.round(w.kg*10)/10):""};any=true;}
+      });
+      if(any)src[fid]=m;
+    }else{
+      var p=planOf(fromYear,fid);if(p)src[fid]=JSON.parse(JSON.stringify(p));
+    }
+  });
+  var ids=Object.keys(src);
+  if(!ids.length){
+    toast(fromActual?{ja:(fromYear)+"年度の作業の記録がありません",en:"No recorded work in "+fromYear}
+                    :{ja:(fromYear)+"年度の予定がありません",en:"No plan entered for "+fromYear});
+    return;
+  }
+  var over=ids.filter(function(fid){return planOf(toYear,fid);});
+  if(over.length&&!confirm(toYear+"年度にすでに予定がある圃場があります（"+joinJa(over,fieldOf)+"）。上書きしますか？\n"
+     +"Some fields already have a "+toYear+" plan. Overwrite them?"))return;
+  store.plans[toYear]=store.plans[toYear]||{};
+  ids.forEach(function(fid){store.plans[toYear][fid]=src[fid];});
+  savePlans();renderPlan();
+  toast({ja:ids.length+"圃場の予定を"+toYear+"年度に入れました",en:"Plan set for "+ids.length+" field(s) in "+toYear});
+}
 function appData(year){
   var months=appMonths(year);
   return appliedFields().map(function(f,idx){
@@ -3700,12 +3832,20 @@ function ajSheet(d,year){
   /* the plan for the year ahead starts as a copy of what was actually done */
   c.A25="2.申請圃場の栽培計画書（申請提出月より1年先まで）";
   c.A26="年";c.A27="月";c.A28="計画";c.A36="収穫量(kg)";c.N26="作付作物名";c.N28="茶";
+  /* the plan for the year ahead: the plan entered in the app when there is one,
+     otherwise a copy of what was actually done this year */
+  var plan=planOf(year+1,d.field.id),planKg=0;
   appMonths(year+1).forEach(function(mm,i2){
     var col=colName(i2+2);
     c[col+"26"]=mm.y;c[col+"27"]=mm.m;
-    if(d.cells[i2].text)c[col+"28"]=d.cells[i2].text;
+    if(plan){
+      var pm=plan[String(mm.m)]||{};
+      if(pm.text)c[col+"28"]=pm.text;
+      var pk=parseFloat(pm.kg);if(!isNaN(pk)&&pk>0){c[col+"36"]=pk;planKg+=pk;}
+    }else if(d.cells[i2].text)c[col+"28"]=d.cells[i2].text;
   });
-  c.A38="※計画は前年度の実績を写した下書きです。提出前に確認してください。";
+  if(planKg)c.N36=Math.round(planKg*10)/10;
+  c.A38=plan?"※計画はアプリの「栽培の予定」から入れました。":"※計画は今年度の実績を写した下書きです。提出前に確認してください。";
   return {name:safeSheetName("A-J-"+d.field.ja),cells:c,
           cols:[10,11,11,11,11,11,11,11,11,11,11,11,11,16]};
 }
@@ -4355,7 +4495,7 @@ function showView(v){
   if(v==="grade")renderGrade();
   if(v==="clean")renderClean();
   if(v==="list")renderList();
-  if(v==="master"){renderMaster();renderAppCard();}
+  if(v==="master"){renderMaster();renderPlan();renderAppCard();}
   if(v==="pdf")renderPdfView();
   window.scrollTo(0,0);
 }
@@ -4480,6 +4620,17 @@ document.getElementById("pdfApp").onclick=function(){
   if(!y){toast(MSG.noLogs);return;}
   pdfApplication(y);
 };
+document.getElementById("planYear").onchange=function(){planSel.year=parseInt(this.value,10);renderPlan();};
+document.getElementById("planField").onchange=function(){planSel.field=this.value;renderPlan();};
+document.getElementById("planCopyAll").onclick=function(){
+  copyPlan(planSel.year-1,planSel.year,appliedFields().map(function(f){return f.id;}),false);
+};
+document.getElementById("planCopyOne").onclick=function(){
+  if(planSel.field)copyPlan(planSel.year-1,planSel.year,[planSel.field],false);
+};
+document.getElementById("planFromActual").onclick=function(){
+  copyPlan(planSel.year-1,planSel.year,appliedFields().map(function(f){return f.id;}),true);
+};
 document.getElementById("xPrev").onclick=function(){moveXMonth(-1);};
 document.getElementById("xNext").onclick=function(){moveXMonth(1);};
 document.getElementById("xMonth").onclick=function(){
@@ -4507,7 +4658,7 @@ document.getElementById("pdfMonth").onclick=function(){pdfMonthRecords(mvY,mvM);
 document.getElementById("pdfCal").onclick=function(){pdfMonthCalendar(mvY,mvM);};
 
 renderEntryChips();updateLot();renderProc();renderGrade();renderClean();renderList();renderMaster();
-renderAppCard();setStatus();
+renderPlan();renderAppCard();setStatus();
 initCaps();
 })();
 </script>
