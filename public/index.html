@@ -278,6 +278,13 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-
 .mlegend span{display:inline-flex;align-items:center;gap:5px}
 .mlegend i{width:9px;height:9px;border-radius:50%;display:inline-block}
 .mview .mdaybox{margin-top:14px}
+.dayadd{margin:0 0 12px;padding:10px 12px;border-radius:10px;background:var(--accent-soft)}
+.dayadd .lb{display:block;font-size:12.5px;font-weight:700;color:var(--accent-ink);margin-bottom:6px}
+.dayadd .lb .en{font-weight:500;margin-left:6px;opacity:.85}
+.dayadd .btns{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.dayadd .btn{padding:7px 4px;background:var(--surface)}
+.dayadd .btn .ja{font-size:13px}
+.dayadd .btn .en{font-size:10.5px}
 .mview .mbtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
 .mview .mbtns .btn{flex:1 1 200px}
 @media (min-width:700px){
@@ -902,6 +909,7 @@ p.secsub .en{display:block;color:var(--faint)}
         <span class="k-grade"><i></i>格付 Grading</span>
         <span class="k-clean"><i></i>洗浄 Cleaning</span>
       </div>
+      <p class="hint">日にちを押すと、その日の記録と「この日に記録を追加」が出ます。<span class="en">Tap a day to see its records and add a record on that day.</span></p>
       <div class="mdaybox" id="mDay"></div>
       <div class="mbtns">
         <button class="btn" type="button" id="pdfMonth"><span class="ja">この月の作業記録をPDFに</span><span class="en">This month's records as PDF</span></button>
@@ -4152,11 +4160,33 @@ function renderMonthView(){
     h.appendChild(el("span",null,fmtDate(mvSel)));
     h.appendChild(el("span","n",recs2.length+" 件 / records"));
     box.appendChild(h);
+    var add=el("div","dayadd");
+    add.appendChild(bi(el("span","lb"),"この日に記録を追加","Add a record on this day"));
+    var btns=el("div","btns");
+    [["entry","栽培","Field"],["proc","加工","Processing"],["grade","格付","Grading"],["clean","洗浄","Cleaning"]].forEach(function(v){
+      var b=bi(el("button","btn"),"＋ "+v[1],v[2]);b.type="button";
+      b.onclick=function(){addOnDate(v[0],mvSel);};
+      btns.appendChild(b);
+    });
+    add.appendChild(btns);box.appendChild(add);
     if(!recs2.length){
       var e=el("p","hint");bi(e,"この日の記録はありません。","No records on this day.");box.appendChild(e);
     }
     recs2.forEach(function(r){box.appendChild(cardFor(r));});
   }
+}
+/* open an entry form with its date set to the day picked on the calendar */
+function addOnDate(view,ds){
+  if(view==="entry"){
+    draft.date=ds;document.getElementById("date").value=ds;
+    showView("entry");updateLot();
+  }else{
+    if(view==="proc")pdraft.date=ds;
+    else if(view==="grade")gdraft.date=ds;
+    else cdraft.date=ds;
+    showView(view);
+  }
+  toast({ja:fmtDate(ds).split(" · ")[0]+" の記録を入力します",en:"Entering a record for "+ds});
 }
 function moveMonth(n){
   mvM+=n;if(mvM<0){mvM=11;mvY--;}if(mvM>11){mvM=0;mvY++;}
