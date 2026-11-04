@@ -287,6 +287,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-
 .dayadd .btn .en{font-size:10.5px}
 .editrow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px}
 .editrow .tag{font-size:11.5px;color:var(--muted);min-width:0}
+.editrow .btn.danger{margin-left:0;color:var(--warn)}
 .editrow .btn{margin-left:auto;padding:6px 14px;flex:none;white-space:nowrap}
 .sheet{position:fixed;inset:0;z-index:25;background:var(--bg);overflow:auto;padding:0 16px 150px;overscroll-behavior:contain}
 .sheetin{max-width:600px;margin:0 auto}
@@ -1423,6 +1424,7 @@ function load(){
   o.machines=o.machines&&o.machines.length?o.machines:SEED.machines;
   o.workers=o.workers&&o.workers.length?o.workers:SEED.workers;
   o.logs=(o.logs||[]).map(spread);
+  o.trash=o.trash||[];
   o.procs=o.procs||[];
   o.factories=(o.factories&&o.factories.length)?o.factories:JSON.parse(JSON.stringify(FACTORY_SEED));
   o.grades=o.grades||[];
@@ -1547,6 +1549,7 @@ function pending(){
   for(i=0;i<store.procs.length;i++){if(!store.procs[i].synced)n++;}
   for(i=0;i<store.grades.length;i++){if(!store.grades[i].synced)n++;}
   for(i=0;i<store.cleans.length;i++){if(!store.cleans[i].synced)n++;}
+  for(i=0;i<store.trash.length;i++){if(!store.trash[i].synced)n++;}
   return n;
 }
 function setStatus(){
@@ -1574,7 +1577,7 @@ function labelMaps(){
 function recordOut(kind,r){
   var body={};
   Object.keys(r).forEach(function(k){if(k!=="synced")body[k]=r[k];});
-  return {id:r.id,kind:kind,date:r.date||null,updatedAt:r.updatedAt||Date.now(),deleted:false,body:body};
+  return {id:r.id,kind:kind,date:r.date||null,updatedAt:r.updatedAt||Date.now(),deleted:!!r.deleted,body:body};
 }
 function sync(){
   if(!online()||syncing)return Promise.resolve();
@@ -1584,6 +1587,7 @@ function sync(){
   store.procs.forEach(function(p){if(!p.synced)out.records.push(recordOut("proc",p));});
   store.grades.forEach(function(g){if(!g.synced)out.records.push(recordOut("grade",g));});
   store.cleans.forEach(function(c){if(!c.synced)out.records.push(recordOut("clean",c));});
+  store.trash.forEach(function(t){if(!t.synced)out.records.push(recordOut(t.kind,t.rec));});
   if(store.mastersDirty){
     out.masters.all={updatedAt:store.mastersUpdated||Date.now(),body:{fields:store.fields,machines:store.machines,
       workers:store.workers,factories:store.factories,masterRev:MASTER_REV,labels:labelMaps()}};
@@ -1603,6 +1607,7 @@ function sync(){
     if(res.status===401){member=null;showGate();return;}
     if(!res.ok)throw new Error("push failed");
     pushed.forEach(function(r){
+      if(r.deleted){store.trash.forEach(function(t){if(t.rec.id===r.id)t.synced=true;});return;}
       var list=r.kind==="log"?store.logs:r.kind==="proc"?store.procs:r.kind==="clean"?store.cleans:store.grades;
       for(var i=0;i<list.length;i++){if(list[i].id===r.id&&(list[i].updatedAt||0)<=r.updatedAt)list[i].synced=true;}
     });
@@ -1615,11 +1620,15 @@ function sync(){
     if(!res||!res.ok)return;
     var d=res.data,changed=false;
     (d.records||[]).forEach(function(r){
-      if(r.deleted)return;
       var list=r.kind==="log"?store.logs:r.kind==="proc"?store.procs:r.kind==="grade"?store.grades:r.kind==="clean"?store.cleans:null;
       if(!list)return;
       var local=null;
       for(var i=0;i<list.length;i++){if(list[i].id===r.id)local=list[i];}
+      /* deleted on another device: drop it here too */
+      if(r.deleted){
+        if(local&&(local.updatedAt||0)<=(r.updatedAt||0)){list.splice(list.indexOf(local),1);changed=true;}
+        return;
+      }
       var incoming=r.body||{};incoming.id=r.id;incoming.updatedAt=r.updatedAt;incoming.synced=true;
       if(r.kind==="log")incoming=normalize(r.id,incoming);
       if(!local){list.push(incoming);changed=true;}
@@ -4377,7 +4386,9 @@ function renderSheet(){
     var row=el("div","editrow");
     var eb=bi(el("button","btn primary"),"この記録を直す","Edit this record");eb.type="button";
     eb.onclick=function(){editRecord(sheet.kind,findRec(sheet.kind,sheet.id));};
-    row.appendChild(eb);box.appendChild(row);
+    var db=bi(el("button","btn ghost danger"),"削除","Delete");db.type="button";
+    db.onclick=function(){deleteRecord(sheet.kind,sheet.id);};
+    row.appendChild(db);row.appendChild(eb);box.appendChild(row);
   }
 }
 /* borrow the entry form of that kind and show it under the record */
@@ -4411,6 +4422,35 @@ function leaveSheet(){
   var kind=VIEW_KIND[currentView];
   if(sheet.card&&kind&&editing[kind])cancelEdit();
   closeSheet();
+}
+/* deleting removes the record from every list and export; the server keeps it
+   flagged as deleted (with who and when), so it can still be traced */
+function usedBy(kind,id){
+  if(kind!=="proc")return "";
+  var kids=store.procs.filter(function(p){return (p.parents||[]).indexOf(id)>-1;}).map(function(p){return p.lot;});
+  var gs=store.grades.filter(function(g){return g.procId===id;}).map(function(g){return g.lot;});
+  return kids.concat(gs).join("、");
+}
+function deleteRecord(kind,id){
+  var o=findRec(kind,id);if(!o)return;
+  var used=usedBy(kind,id);
+  if(used){
+    toast({ja:"このロットは "+used+" に使われているので削除できません。先にそちらを削除してください",
+           en:"This lot feeds "+used+" — delete those first"});
+    return;
+  }
+  var what=fmtDate(o.date).split(" · ")[0]+" "+shortLabel(kind,o)+(o.lot?"（"+o.lot+"）":"");
+  if(!confirm("この記録を削除しますか？\n"+what+"\n\n削除すると一覧・カレンダー・書き出しから消えます。\nDelete this record? It disappears from the lists, calendar and exports."))return;
+  var list=listOf(kind);
+  list.splice(list.indexOf(o),1);
+  var rec={};Object.keys(o).forEach(function(k){if(k!=="synced")rec[k]=o[k];});
+  rec.deleted=true;rec.deletedBy=member||"";rec.deletedAt=Date.now();rec.updatedAt=Date.now();
+  store.trash.push({kind:kind,rec:rec,synced:false});
+  if(kind==="grade")store.sealsDirty=true;
+  persist();scheduleSync();setStatus();
+  closeSheet();
+  if(kind==="grade")renderMaster();
+  toast({ja:"記録を削除しました",en:"Record deleted"});
 }
 function moveMonth(n){
   mvM+=n;if(mvM<0){mvM=11;mvY--;}if(mvM>11){mvM=0;mvY++;}
