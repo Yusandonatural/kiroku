@@ -285,6 +285,20 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-
 .dayadd .btn{padding:7px 4px;background:var(--surface)}
 .dayadd .btn .ja{font-size:13px}
 .dayadd .btn .en{font-size:10.5px}
+.fyctl{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:10px}
+.fyctl .field{margin:0}
+.fysum{display:flex;flex-wrap:wrap;gap:6px 14px;margin:12px 0 4px;padding:10px 12px;border-radius:10px;background:var(--accent-soft);color:var(--accent-ink);font-size:13px}
+.fysum b{font-size:15px}
+.fysum .en{display:block;width:100%;font-size:11.5px;opacity:.85}
+.fym{margin:14px 0 4px;font-weight:700;font-size:13.5px;border-bottom:1px solid var(--line);padding-bottom:4px}
+.fym .en{font-weight:500;margin-left:6px;color:var(--muted);font-size:12px}
+.fyrow{display:grid;grid-template-columns:64px minmax(0,1fr);gap:8px;width:100%;text-align:left;background:none;border:0;
+  border-bottom:1px dashed var(--line);padding:8px 2px;color:inherit;font:inherit;cursor:pointer}
+.fyrow:last-child{border-bottom:none}
+.fyrow .d{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--muted);padding-top:2px}
+.fyrow .w{font-weight:600;font-size:13.5px}
+.fyrow .w .k{background:var(--k);display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:1px}
+.fyrow .s{display:block;font-size:12px;color:var(--muted);font-weight:400;margin-top:2px}
 .editrow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px}
 .editrow .tag{font-size:11.5px;color:var(--muted);min-width:0}
 .editrow .btn.danger{margin-left:0;color:var(--warn)}
@@ -935,6 +949,26 @@ p.secsub .en{display:block;color:var(--faint)}
         <button class="btn" type="button" id="pdfCal"><span class="ja">この月のカレンダーをPDFに</span><span class="en">This month's calendar as PDF</span></button>
       </div>
       <p class="hint">印刷の画面が開きます。パソコンは「PDFとして保存」、iPhoneは右上の共有ボタン →「ファイルに保存」でPDFになります。<span class="en">The print screen opens. On a computer choose "Save as PDF"; on an iPhone tap Share (top right) → "Save to Files".</span></p>
+    </div>
+    <div class="card" id="fieldYear">
+      <h2 class="sec"><span class="ja">圃場ごとの一年</span><span class="en">A field's year</span></h2>
+      <p class="secsub">1つの圃場の、申請年度(10月〜翌9月)の作業を月ごとに並べます。行を押すと記録が開きます。<span class="en">Every record for one field over an application year (October to September), by month. Tap a row to open the record.</span></p>
+      <div class="fyctl">
+        <div class="field">
+          <label class="lb" for="fyField"><span class="ja">圃場</span><span class="en">Field</span></label>
+          <select id="fyField"></select>
+        </div>
+        <div class="field">
+          <label class="lb" for="fyYear"><span class="ja">申請年度</span><span class="en">Application year</span></label>
+          <select id="fyYear"></select>
+        </div>
+      </div>
+      <div id="fySum"></div>
+      <div id="fyList"></div>
+      <div class="mbtns">
+        <button class="btn" type="button" id="fyPdf"><span class="ja">この一年をPDFに</span><span class="en">This year as PDF</span></button>
+        <button class="btn" type="button" id="fyXlsx"><span class="ja">この一年をExcelに</span><span class="en">This year as Excel</span></button>
+      </div>
     </div>
     <div id="logList"></div>
   </section>
@@ -2053,7 +2087,7 @@ function harvestCard(){
   return c;
 }
 function renderList(){
-  renderMonthView();
+  renderMonthView();renderFieldYear();
   var wrap=document.getElementById("logList");wrap.textContent="";
   var hs=harvestCard();if(hs)wrap.appendChild(hs);
   if(!store.logs.length&&!store.procs.length&&!store.grades.length&&!store.cleans.length){
@@ -4452,6 +4486,91 @@ function deleteRecord(kind,id){
   if(kind==="grade")renderMaster();
   toast({ja:"記録を削除しました",en:"Record deleted"});
 }
+/* ---------- one field, one application year ---------- */
+var fySel={field:null,year:null};
+function labelEn(kind,o){
+  if(kind==="log")return (o.tasks||[]).map(function(k){return taskOf(k).en;}).filter(Boolean).join(" · ");
+  if(kind==="proc")return stageOf(o.stage).en;
+  if(kind==="grade")return "Grading";
+  return "Cleaning";
+}
+function renderFieldYear(){
+  var fs=document.getElementById("fyField"),ys=document.getElementById("fyYear");if(!fs)return;
+  var fields=store.fields.filter(function(f){return f.status!=="retired";});
+  if(!fySel.field||!fields.some(function(f){return f.id===fySel.field;}))fySel.field=(fields[0]||{}).id||null;
+  var cur=planYearNow();if(!fySel.year)fySel.year=cur;
+  fs.textContent="";
+  fields.forEach(function(f){
+    var op=document.createElement("option");op.value=f.id;
+    op.textContent=(f.ja||f.en)+(f.en&&f.en!==f.ja?" / "+f.en:"")+(isApplied(f)?"":"（未申請）");
+    if(f.id===fySel.field)op.selected=true;fs.appendChild(op);
+  });
+  var first=cur;
+  store.logs.concat(store.procs).forEach(function(o){
+    if(!o.date)return;var y=+o.date.slice(0,4)+(+o.date.slice(5,7)>=10?1:0);if(y<first)first=y;
+  });
+  ys.textContent="";
+  for(var y=cur;y>=first;y--){
+    var op=document.createElement("option");op.value=y;
+    op.textContent=y+"年度（"+(y-1)+"/10〜"+y+"/9）";
+    if(y===fySel.year)op.selected=true;ys.appendChild(op);
+  }
+  var sum=document.getElementById("fySum"),list=document.getElementById("fyList");
+  sum.textContent="";list.textContent="";
+  if(!fySel.field)return;
+  var fid=fySel.field,yr=fySel.year;
+  var r=recordsBetween((yr-1)+"-10-01",yr+"-09-30",[fid]);
+  var items=[];
+  ["log","proc","grade"].forEach(function(k){r[k].forEach(function(o){items.push({kind:k,o:o});});});
+  items.sort(function(a,b){return a.o.date<b.o.date?-1:a.o.date>b.o.date?1:(a.o.updatedAt||0)-(b.o.updatedAt||0);});
+  if(!items.length){
+    var e=el("p","hint");bi(e,"この年度の記録はありません。","No records for this field in this year.");list.appendChild(e);return;
+  }
+  var kg=0,days={},tc={};
+  r.log.forEach(function(l){
+    var v=parseFloat((l.qtyByField||{})[fid]);if(!isNaN(v))kg+=v;
+    days[l.date]=1;
+    (l.tasks||[]).forEach(function(t){tc[t]=(tc[t]||0)+1;});
+  });
+  var sb=el("div","fysum");
+  var top=Object.keys(tc).sort(function(a,b){return tc[b]-tc[a];});
+  var a=el("span");a.appendChild(document.createTextNode("作業 "));a.appendChild(el("b",null,String(Object.keys(days).length)));a.appendChild(document.createTextNode(" 日"));sb.appendChild(a);
+  var b=el("span");b.appendChild(document.createTextNode("収穫 "));b.appendChild(el("b",null,fmtKg(kg)));b.appendChild(document.createTextNode(" kg"));sb.appendChild(b);
+  if(r.proc.length)sb.appendChild(el("span",null,"加工 "+r.proc.length+"件"));
+  if(top.length)sb.appendChild(el("span",null,top.map(function(t){return taskOf(t).ja+" "+tc[t]+"回";}).join("・")));
+  sb.appendChild(el("span","en",Object.keys(days).length+" work days · harvested "+fmtKg(kg)+" kg"+(r.proc.length?" · "+r.proc.length+" processing":"")));
+  sum.appendChild(sb);
+  var lastM="";
+  items.forEach(function(it){
+    var o=it.o,m=o.date.slice(0,7);
+    if(m!==lastM){
+      lastM=m;var mm=+m.slice(5,7);
+      list.appendChild(bi(el("p","fym"),m.slice(0,4)+"年"+mm+"月",MONTHS_EN[mm-1]+" "+m.slice(0,4)));
+    }
+    var row=el("button","fyrow");row.type="button";
+    var dt=new Date(+o.date.slice(0,4),+o.date.slice(5,7)-1,+o.date.slice(8,10));
+    row.appendChild(el("span","d",(+o.date.slice(5,7))+"/"+(+o.date.slice(8,10))+" "+WD_JA[dt.getDay()]));
+    var w=el("span","w");
+    w.appendChild(el("i","k k-"+it.kind));
+    w.appendChild(document.createTextNode(shortLabel(it.kind,o)));
+    var en=labelEn(it.kind,o);if(en)w.appendChild(el("span","en"," "+en));
+    var sub=[];
+    if(it.kind==="log"){
+      var q=(o.qtyByField||{})[fid];if(q!=null&&q!=="")sub.push("収穫 "+fmtKg(parseFloat(q))+"kg");
+      if((o.machineIds||[]).length)sub.push("機械 "+joinJa(o.machineIds,machineOf));
+      if(o.material==="used")sub.push("資材 "+(o.materialNote||"使用"));
+    }else if(it.kind==="proc"){
+      sub.push(o.lot+" · "+fmtKg(parseFloat(o.out)||0)+"kg");
+    }else sub.push(o.lot+" · "+fmtKg(o.qty||0)+"kg");
+    var wk=o.workers||[];
+    if(wk.length)sub.push(wk.map(function(x){return x.split("/")[0].trim();}).join("、"));
+    if(o.memo)sub.push(o.memo);
+    w.appendChild(el("span","s",sub.join(" / ")));
+    row.appendChild(w);
+    row.onclick=function(){openRecord(it.kind,o.id);};
+    list.appendChild(row);
+  });
+}
 function moveMonth(n){
   mvM+=n;if(mvM<0){mvM=11;mvY--;}if(mvM>11){mvM=0;mvY++;}
   mvSel=null;renderMonthView();
@@ -4954,6 +5073,12 @@ document.getElementById("xApp").onclick=function(){
 };
 document.getElementById("mPrev").onclick=function(){moveMonth(-1);};
 document.getElementById("mNext").onclick=function(){moveMonth(1);};
+document.getElementById("fyField").onchange=function(){fySel.field=this.value;renderFieldYear();};
+document.getElementById("fyYear").onchange=function(){fySel.year=+this.value;renderFieldYear();};
+document.getElementById("fyPdf").onclick=function(){if(fySel.field)pdfYearRecords(fySel.year,null,[fySel.field]);};
+document.getElementById("fyXlsx").onclick=function(){
+  if(fySel.field)xlsxRecords((fySel.year-1)+"-10-01",fySel.year+"-09-30",fySel.year+"年度",null,[fySel.field]);
+};
 document.getElementById("pdfMonth").onclick=function(){pdfMonthRecords(mvY,mvM);};
 document.getElementById("pdfCal").onclick=function(){pdfMonthCalendar(mvY,mvM);};
 
