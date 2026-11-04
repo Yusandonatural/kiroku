@@ -952,7 +952,7 @@ p.secsub .en{display:block;color:var(--faint)}
     </div>
     <div class="card" id="fieldYear">
       <h2 class="sec"><span class="ja">圃場ごとの一年</span><span class="en">A field's year</span></h2>
-      <p class="secsub">1つの圃場の、申請年度(10月〜翌9月)の作業を月ごとに並べます。行を押すと記録が開きます。<span class="en">Every record for one field over an application year (October to September), by month. Tap a row to open the record.</span></p>
+      <p class="secsub">1つの圃場の、直近1年または申請年度(10月〜翌9月)の作業を月ごとに並べます。行を押すと記録が開きます。<span class="en">Every record for one field over the last 12 months or an application year (October to September), by month. Tap a row to open the record.</span></p>
       <div class="fyctl">
         <div class="field">
           <label class="lb" for="fyField"><span class="ja">圃場</span><span class="en">Field</span></label>
@@ -4488,6 +4488,16 @@ function deleteRecord(kind,id){
 }
 /* ---------- one field, one application year ---------- */
 var fySel={field:null,year:null};
+/* the period picked: the last 12 months up to today, or an application year (Oct–Sep) */
+function fyRange(){
+  if(fySel.year==="last"){
+    var t=today(),from=(+t.slice(0,4)-1)+t.slice(4,8)+"01";
+    var d=new Date(+from.slice(0,4),+from.slice(5,7),1);
+    from=d.getFullYear()+"-"+p2(d.getMonth()+1)+"-01";
+    return [from,t];
+  }
+  return [(fySel.year-1)+"-10-01",fySel.year+"-09-30"];
+}
 function labelEn(kind,o){
   if(kind==="log")return (o.tasks||[]).map(function(k){return taskOf(k).en;}).filter(Boolean).join(" · ");
   if(kind==="proc")return stageOf(o.stage).en;
@@ -4498,33 +4508,44 @@ function renderFieldYear(){
   var fs=document.getElementById("fyField"),ys=document.getElementById("fyYear");if(!fs)return;
   var fields=store.fields.filter(function(f){return f.status!=="retired";});
   if(!fySel.field||!fields.some(function(f){return f.id===fySel.field;}))fySel.field=(fields[0]||{}).id||null;
-  var cur=planYearNow();if(!fySel.year)fySel.year=cur;
+  var cur=planYearNow();if(!fySel.year)fySel.year="last";
   fs.textContent="";
   fields.forEach(function(f){
     var op=document.createElement("option");op.value=f.id;
     op.textContent=(f.ja||f.en)+(f.en&&f.en!==f.ja?" / "+f.en:"")+(isApplied(f)?"":"（未申請）");
     if(f.id===fySel.field)op.selected=true;fs.appendChild(op);
   });
-  var first=cur;
+  /* how many records this field has in each application year, for the picker */
+  var first=cur,per={};
   store.logs.concat(store.procs).forEach(function(o){
     if(!o.date)return;var y=+o.date.slice(0,4)+(+o.date.slice(5,7)>=10?1:0);if(y<first)first=y;
   });
+  [["log",store.logs],["proc",store.procs],["grade",store.grades]].forEach(function(p){
+    p[1].forEach(function(o){
+      if(!o.date||!inFields(p[0],o,[fySel.field]))return;
+      var y=+o.date.slice(0,4)+(+o.date.slice(5,7)>=10?1:0);per[y]=(per[y]||0)+1;
+    });
+  });
+  var rg=fyRange();
   ys.textContent="";
+  var lo=document.createElement("option");lo.value="last";
+  lo.textContent="直近1年（"+rg[0].slice(0,7).replace("-","/")+"〜）/ last 12 months";
+  if(fySel.year==="last")lo.selected=true;ys.appendChild(lo);
   for(var y=cur;y>=first;y--){
     var op=document.createElement("option");op.value=y;
-    op.textContent=y+"年度（"+(y-1)+"/10〜"+y+"/9）";
+    op.textContent=y+"年度（"+(y-1)+"/10〜"+y+"/9）· "+(per[y]||0)+"件";
     if(y===fySel.year)op.selected=true;ys.appendChild(op);
   }
   var sum=document.getElementById("fySum"),list=document.getElementById("fyList");
   sum.textContent="";list.textContent="";
   if(!fySel.field)return;
-  var fid=fySel.field,yr=fySel.year;
-  var r=recordsBetween((yr-1)+"-10-01",yr+"-09-30",[fid]);
+  var fid=fySel.field;
+  var r=recordsBetween(rg[0],rg[1],[fid]);
   var items=[];
   ["log","proc","grade"].forEach(function(k){r[k].forEach(function(o){items.push({kind:k,o:o});});});
   items.sort(function(a,b){return a.o.date<b.o.date?-1:a.o.date>b.o.date?1:(a.o.updatedAt||0)-(b.o.updatedAt||0);});
   if(!items.length){
-    var e=el("p","hint");bi(e,"この年度の記録はありません。","No records for this field in this year.");list.appendChild(e);return;
+    var e=el("p","hint");bi(e,"この期間の記録はありません。上の「申請年度」で前の年度を選んでみてください。","No records for this field in this period — try an earlier year above.");list.appendChild(e);return;
   }
   var kg=0,days={},tc={};
   r.log.forEach(function(l){
@@ -5074,10 +5095,17 @@ document.getElementById("xApp").onclick=function(){
 document.getElementById("mPrev").onclick=function(){moveMonth(-1);};
 document.getElementById("mNext").onclick=function(){moveMonth(1);};
 document.getElementById("fyField").onchange=function(){fySel.field=this.value;renderFieldYear();};
-document.getElementById("fyYear").onchange=function(){fySel.year=+this.value;renderFieldYear();};
-document.getElementById("fyPdf").onclick=function(){if(fySel.field)pdfYearRecords(fySel.year,null,[fySel.field]);};
+document.getElementById("fyYear").onchange=function(){fySel.year=this.value==="last"?"last":+this.value;renderFieldYear();};
+document.getElementById("fyPdf").onclick=function(){
+  if(!fySel.field)return;
+  if(fySel.year!=="last"){pdfYearRecords(fySel.year,null,[fySel.field]);return;}
+  var rg=fyRange();
+  pdfRecords(rg[0],rg[1],"直近1年（"+rg[0]+"〜"+rg[1]+"）","Last 12 months "+rg[0]+" – "+rg[1],"直近1年",null,true,[fySel.field]);
+};
 document.getElementById("fyXlsx").onclick=function(){
-  if(fySel.field)xlsxRecords((fySel.year-1)+"-10-01",fySel.year+"-09-30",fySel.year+"年度",null,[fySel.field]);
+  if(!fySel.field)return;
+  var rg=fyRange();
+  xlsxRecords(rg[0],rg[1],fySel.year==="last"?"直近1年":fySel.year+"年度",null,[fySel.field]);
 };
 document.getElementById("pdfMonth").onclick=function(){pdfMonthRecords(mvY,mvM);};
 document.getElementById("pdfCal").onclick=function(){pdfMonthCalendar(mvY,mvM);};
