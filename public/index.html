@@ -299,6 +299,21 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-
 .fyrow .w{font-weight:600;font-size:13.5px}
 .fyrow .w .k{background:var(--k);display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:1px}
 .fyrow .s{display:block;font-size:12px;color:var(--muted);font-weight:400;margin-top:2px}
+.regsec{margin:14px 0 4px}
+.regh{font-size:14px;margin:0 0 8px}
+.regh .en{font-weight:500;margin-left:6px;color:var(--muted);font-size:12px}
+.reg{border:1px solid var(--line);border-radius:10px;padding:10px;margin:0 0 8px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.regf{display:flex;flex-direction:column;gap:3px;min-width:0}
+.regf.wide{grid-column:1/-1}
+.regf .lb{font-size:12px}
+.regf input,.regf select{width:100%}
+.regdel{grid-column:1/-1;justify-self:end;padding:4px 10px}
+.reg.nb{grid-template-columns:22px repeat(3,minmax(0,1fr));align-items:end}
+.reg.nb .nbl{font-weight:700;padding-bottom:10px}
+@media (max-width:520px){.reg.nb{grid-template-columns:22px minmax(0,1fr)}.reg.nb .regf{grid-column:2}}
+.tplbox{margin-top:16px;padding-top:12px;border-top:1px dashed var(--line)}
+.tplrep{margin:6px 0 0;padding-left:18px;font-size:12.5px;color:var(--muted)}
+.tplrep li.warn{color:var(--warn);font-weight:700}
 .editrow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px}
 .editrow .tag{font-size:11.5px;color:var(--muted);min-width:0}
 .editrow .btn.danger{margin-left:0;color:var(--warn)}
@@ -1175,6 +1190,12 @@ p.secsub .en{display:block;color:var(--faint)}
     </div>
 
     <div class="card">
+      <h2 class="sec"><span class="ja">申請書の台帳</span><span class="en">Application registers</span></h2>
+      <p class="secsub">継続申請書の A-申請・A-A・A-B(組織図・委託先)・A-F(施設・倉庫)・A-E(圃場の周り)に入る内容です。下の「申請書から台帳に読み込む」で、今の申請書から最初の内容を取り込めます。<span class="en">What goes into the application's staff, organisation, contractor, facility and field-surroundings sheets. "Fill the registers from the workbook" below takes the current contents from the last application.</span></p>
+      <div id="regBox"></div>
+    </div>
+
+    <div class="card">
       <h2 class="sec"><span class="ja">継続申請書の下書き</span><span class="en">Renewal application draft</span></h2>
       <p class="secsub">記録から <strong>A-J(申請圃場の栽培履歴と計画書)</strong> を圃場ごとに作り、A-G(機械)・A-C(圃場一覧)とあわせて Excel で書き出します。申請年度は10月〜翌9月です。書式のセル位置は申請書と同じにしてあるので、そのまま提出するか、HOASの様式に貼り付けて使えます。<span class="en">Builds the A-J cultivation history and plan for every applied field, plus the machine and field lists, as one Excel file. The application year runs October to September, and the cells sit where they sit in the official sheet, so the file can be submitted as it is or pasted into the HOAS template.</span></p>
       <div class="field">
@@ -1187,6 +1208,18 @@ p.secsub .en{display:block;color:var(--faint)}
         <button class="btn" id="pdfApp"><span class="ja">PDFで書き出す</span><span class="en">Export as PDF</span></button>
       </div>
       <p class="hint">押印・講習会番号・出荷先(A-I)・種苗(A-K/L/M)など、記録から作れない欄は空のままです。書き出したあとに確認して埋めてください。<span class="en">Seals, training certificate numbers, buyers (A-I) and seed and seedling sheets (A-K/L/M) cannot come from the records and are left blank — fill them in after exporting.</span></p>
+      <div class="tplbox">
+        <h3 class="regh"><span class="ja">提出した申請書を土台にして書き出す</span><span class="en">Fill in the submitted workbook</span></h3>
+        <p class="secsub">前回提出した申請書(Excel)を読み込むと、地図・図面・押印欄などはそのまま残し、記録と台帳からわかる欄(A-J の作業・収穫・計画、A-G の機械、A-F の施設、A-E の周辺、A-B の組織図・委託先、A-申請の担当者、A-A の面積)だけを書き換えた Excel を作ります。申請書はこの端末にだけ保存されます。<span class="en">Load the last submitted workbook: maps, drawings and seal boxes stay as they are, and only the cells the records and registers can answer are rewritten (A-J work, harvest and plan; machines; facilities; field surroundings; organisation and contractors; staff; area). The workbook is kept on this device only.</span></p>
+        <p class="hint" id="tplStatus"></p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <label class="btn" for="tplFile"><span class="ja">申請書(Excel)を読み込む</span><span class="en">Load the workbook</span></label>
+          <input type="file" id="tplFile" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" class="hidden">
+          <button class="btn primary" type="button" id="tplExport"><span class="ja">記録で埋めて書き出す</span><span class="en">Fill and export</span></button>
+          <button class="btn ghost" type="button" id="tplImport"><span class="ja">申請書から台帳に読み込む</span><span class="en">Fill the registers from the workbook</span></button>
+        </div>
+        <div id="tplReport"></div>
+      </div>
     </div>
   </section>
 </main>
@@ -1468,6 +1501,8 @@ function load(){
   if(o.mastersDirty==null)o.mastersDirty=true;   /* first run pushes the registers */
   if(o.sealsDirty==null)o.sealsDirty=false;
   if(o.plansDirty==null)o.plansDirty=false;
+  if(!o.app)o.app={staff:[],org:[],contractors:[],facilities:[],neighbors:{}};
+  if(o.appDirty==null)o.appDirty=false;
   o.mastersUpdated=o.mastersUpdated||Date.now();
   return o;
 }
@@ -1632,9 +1667,12 @@ function sync(){
   if(store.plansDirty){
     out.masters.plans={updatedAt:store.plansUpdated||Date.now(),body:{years:store.plans}};
   }
+  if(store.appDirty){
+    out.masters.app={updatedAt:store.appUpdated||Date.now(),body:store.app};
+  }
   var pushed=out.records.slice(),mastersPushed=!!out.masters.all,sealsPushed=!!out.masters.seals,
-      plansPushed=!!out.masters.plans;
-  var p=(pushed.length||mastersPushed||sealsPushed||plansPushed)
+      plansPushed=!!out.masters.plans,appPushed=!!out.masters.app;
+  var p=(pushed.length||mastersPushed||sealsPushed||plansPushed||appPushed)
     ? apiFetch("/api/sync",{method:"POST",body:out})
     : Promise.resolve({ok:true,data:{}});
   return p.then(function(res){
@@ -1648,6 +1686,7 @@ function sync(){
     if(mastersPushed)store.mastersDirty=false;
     if(sealsPushed)store.sealsDirty=false;
     if(plansPushed)store.plansDirty=false;
+    if(appPushed)store.appDirty=false;
     persist();
     return apiFetch("/api/sync?since="+lastSync,{method:"GET"});
   }).then(function(res){
@@ -1683,6 +1722,10 @@ function sync(){
     if(m.plans&&m.plans.body&&(m.plans.updatedAt||0)>(store.plansUpdated||0)){
       store.plans=m.plans.body.years||{};store.plansUpdated=m.plans.updatedAt;store.plansDirty=false;changed=true;
       renderPlan();
+    }
+    if(m.app&&m.app.body&&(m.app.updatedAt||0)>(store.appUpdated||0)){
+      store.app=m.app.body;store.appUpdated=m.app.updatedAt;store.appDirty=false;changed=true;
+      renderRegisters();
     }
     if(d.now){lastSync=d.now;try{localStorage.setItem(KEY+"_since",String(lastSync));}catch(e){}}
     if(changed){persist();renderList();}
@@ -4140,6 +4183,535 @@ function exportApplication(year){
     toast(MSG.exported);
   }catch(e){toast(MSG.exportFail);}
 }
+/* ================= the real application workbook as a template =================
+   The renewal application is a 23-sheet HOAS workbook full of maps, drawings and
+   seals that the app cannot draw. So the last submitted workbook is kept on this
+   device and only the cells the records and registers can answer are rewritten;
+   everything else goes back out byte for byte. */
+
+/* ---- registers that feed the application (synced as masters.app) ---- */
+var LETTERS=["イ","ロ","ハ","ニ","ホ","へ"];
+var REG={
+  staff:{max:4,ja:"担当者",en:"Staff",cols:[
+    {k:"name",ja:"氏名",en:"Name"},
+    {k:"mgr",ja:"生産行程管理",en:"Production manager",opts:[["","—"],["◎","◎ 責任者"],["○","○ 担当者"]]},
+    {k:"grader",ja:"格付",en:"Grading",opts:[["","—"],["◎","◎ 責任者"],["○","○ 担当者"]]},
+    {k:"course",ja:"講習会の受講日と番号",en:"Training date and certificate no.",wide:true}]},
+  org:{max:6,ja:"組織図",en:"Organisation chart",cols:[
+    {k:"role",ja:"役割",en:"Role"},{k:"name",ja:"氏名",en:"Name"}]},
+  contractors:{max:2,ja:"委託先",en:"Contractors",cols:[
+    {k:"name",ja:"委託先名",en:"Name"},{k:"work",ja:"種別・行程",en:"Work"},
+    {k:"addr",ja:"所在地",en:"Address",wide:true},{k:"area",ja:"広さ(㎡)",en:"Area (m²)"},
+    {k:"use",ja:"非有機との区分",en:"Organic only / shared",opts:[["併用","併用 Shared"],["専用","有機専用 Organic only"]]},
+    {k:"contract",ja:"契約書",en:"Contract",opts:[["有","有 Yes"],["無","無 No"]]}]},
+  facilities:{max:6,ja:"施設・倉庫",en:"Facilities and storage",cols:[
+    {k:"type",ja:"種別",en:"Type"},{k:"count",ja:"所有数",en:"Number"},
+    {k:"own",ja:"個人・共同・委託",en:"Own / shared / contracted",opts:[["個","個人 Own"],["共","共同 Shared"],["委","委託 Contracted"]]},
+    {k:"use",ja:"有機専用・慣行併用",en:"Organic only / shared",opts:[["有","有機専用 Organic only"],["併","併用 Shared"]]},
+    {k:"sep",ja:"併用の場合の区分方法",en:"How kept apart if shared",wide:true},
+    {k:"pest",ja:"施設内の病害虫対策",en:"Pest control",wide:true},
+    {k:"addr",ja:"所在地",en:"Address",wide:true},{k:"size",ja:"広さ(縦×横 m)",en:"Size (m × m)"}]}
+};
+function appReg(){
+  if(!store.app)store.app={};
+  ["staff","org","contractors","facilities"].forEach(function(k){if(!store.app[k])store.app[k]=[];});
+  if(!store.app.neighbors)store.app.neighbors={};
+  return store.app;
+}
+function saveApp(){store.appUpdated=Date.now();store.appDirty=true;persist();scheduleSync();}
+
+function renderRegisters(){
+  var box=document.getElementById("regBox");if(!box)return;
+  box.textContent="";
+  var a=appReg();
+  ["staff","org","contractors","facilities"].forEach(function(key){
+    var spec=REG[key],list=a[key];
+    var sec=el("div","regsec");
+    sec.appendChild(bi(el("h3","regh"),spec.ja,spec.en));
+    list.forEach(function(row,i){
+      var r=el("div","reg");
+      spec.cols.forEach(function(c){
+        var lab=el("label","regf"+(c.wide?" wide":""));
+        lab.appendChild(bi(el("span","lb"),c.ja,c.en));
+        var inp;
+        if(c.opts){
+          inp=document.createElement("select");
+          c.opts.forEach(function(o){
+            var op=document.createElement("option");op.value=o[0];op.textContent=o[1];
+            if((row[c.k]||"")===o[0])op.selected=true;inp.appendChild(op);
+          });
+          if(!row[c.k]&&c.opts[0][0])row[c.k]=c.opts[0][0];
+        }else{inp=document.createElement("input");inp.type="text";inp.value=row[c.k]||"";}
+        inp.onchange=function(){row[c.k]=this.value;saveApp();};
+        lab.appendChild(inp);r.appendChild(lab);
+      });
+      var del=bi(el("button","btn ghost danger regdel"),"この行を消す","Remove");del.type="button";
+      del.onclick=function(){list.splice(i,1);saveApp();renderRegisters();};
+      r.appendChild(del);sec.appendChild(r);
+    });
+    if(list.length<spec.max){
+      var add=bi(el("button","btn ghost"),"＋ 追加","Add");add.type="button";
+      add.onclick=function(){list.push({});saveApp();renderRegisters();};
+      sec.appendChild(add);
+    }else sec.appendChild(bi(el("p","hint"),"申請書の欄は"+spec.max+"行までです。","The form has room for "+spec.max+" rows."));
+    box.appendChild(sec);
+  });
+  /* surroundings of each applied field (A-E) */
+  var sec=el("div","regsec");
+  sec.appendChild(bi(el("h3","regh"),"圃場の周りの様子（A-E）","Around each field (A-E)"));
+  var fs=document.createElement("select");fs.id="nbField";
+  var fields=appliedFields();
+  if(!regNbField||!fields.some(function(f){return f.id===regNbField;}))regNbField=(fields[0]||{}).id;
+  fields.forEach(function(f){
+    var op=document.createElement("option");op.value=f.id;
+    op.textContent=(f.ja||f.en)+(f.area?"　"+f.area+"a":"");
+    if(f.id===regNbField)op.selected=true;fs.appendChild(op);
+  });
+  fs.onchange=function(){regNbField=this.value;renderRegisters();};
+  var fl=el("label","regf wide");fl.appendChild(bi(el("span","lb"),"圃場","Field"));fl.appendChild(fs);
+  sec.appendChild(fl);
+  if(regNbField){
+    var nb=a.neighbors[regNbField]||(a.neighbors[regNbField]=[]);
+    LETTERS.forEach(function(L,i){
+      var row=nb[i]||(nb[i]={});
+      var r=el("div","reg nb");
+      r.appendChild(el("span","nbl",L));
+      [["land","隣接地の土地利用","Neighbouring land use"],["dist","距離(m)","Distance (m)"],
+       ["measure","1m未満のときの対策","Buffer measure if under 1 m"]].forEach(function(c){
+        var lab=el("label","regf");lab.appendChild(bi(el("span","lb"),c[1],c[2]));
+        var inp=document.createElement("input");inp.type="text";inp.value=row[c[0]]||"";
+        inp.onchange=function(){row[c[0]]=this.value;saveApp();};
+        lab.appendChild(inp);r.appendChild(lab);
+      });
+      sec.appendChild(r);
+    });
+  }
+  box.appendChild(sec);
+}
+var regNbField=null;
+
+/* ---- zip in and out (only the parts that change are unpacked) ---- */
+function u8at(b,o,n){var v=0;for(var i=n-1;i>=0;i--)v=v*256+b[o+i];return v;}
+function readZip(b){
+  var e=-1;
+  for(var i=b.length-22;i>=Math.max(0,b.length-70000);i--){
+    if(b[i]===0x50&&b[i+1]===0x4b&&b[i+2]===5&&b[i+3]===6){e=i;break;}
+  }
+  if(e<0)throw new Error("not a zip");
+  var n=u8at(b,e+10,2),off=u8at(b,e+16,4),out=[],dec=new TextDecoder();
+  for(var k=0;k<n;k++){
+    if(u8at(b,off,4)!==0x02014b50)throw new Error("bad zip");
+    var flags=u8at(b,off+8,2),method=u8at(b,off+10,2),crc=u8at(b,off+16,4),
+        cs=u8at(b,off+20,4),us=u8at(b,off+24,4),nl=u8at(b,off+28,2),xl=u8at(b,off+30,2),
+        cl=u8at(b,off+32,2),lo=u8at(b,off+42,4);
+    var name=dec.decode(b.subarray(off+46,off+46+nl));
+    var ds=lo+30+u8at(b,lo+26,2)+u8at(b,lo+28,2);
+    out.push({name:name,flags:flags,method:method,crc:crc,usize:us,raw:b.subarray(ds,ds+cs)});
+    off+=46+nl+xl+cl;
+  }
+  return out;
+}
+function unpack(ent){
+  if(ent.method===0)return Promise.resolve(ent.raw);
+  if(typeof DecompressionStream==="undefined")return Promise.reject(new Error("no inflate"));
+  var s=new Blob([ent.raw]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+  return new Response(s).arrayBuffer().then(function(a){return new Uint8Array(a);});
+}
+function unpackText(ent){return unpack(ent).then(function(u){return new TextDecoder().decode(u);});}
+/* write the archive back: untouched entries keep their compressed bytes */
+function writeZip(ents){
+  function u16(n){return [n&255,(n>>8)&255];}
+  function u32(n){return [n&255,(n>>8)&255,(n>>16)&255,(n>>>24)&255];}
+  var parts=[],cd=[],offset=0,cdLen=0,enc=new TextEncoder();
+  ents.forEach(function(e){
+    var name=enc.encode(e.name),fl=0x0800;
+    var head=new Uint8Array([].concat([0x50,0x4b,3,4],u16(20),u16(fl),u16(e.method),u16(0),u16(0x21),
+      u32(e.crc),u32(e.raw.length),u32(e.usize),u16(name.length),u16(0)));
+    parts.push(head,name,e.raw);
+    var c=new Uint8Array([].concat([0x50,0x4b,1,2],u16(20),u16(20),u16(fl),u16(e.method),u16(0),u16(0x21),
+      u32(e.crc),u32(e.raw.length),u32(e.usize),u16(name.length),u16(0),u16(0),u16(0),u16(0),u32(0),u32(offset)));
+    cd.push(c,name);cdLen+=c.length+name.length;
+    offset+=head.length+name.length+e.raw.length;
+  });
+  var end=new Uint8Array([].concat([0x50,0x4b,5,6],u16(0),u16(0),u16(ents.length),u16(ents.length),
+    u32(cdLen),u32(offset),u16(0)));
+  return new Blob(parts.concat(cd,[end]),{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+}
+
+/* ---- reading and writing cells in a sheet's XML ---- */
+function xmlUnesc(s){
+  return s.replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&quot;/g,'"').replace(/&apos;/g,"'")
+          .replace(/&#(\d+);/g,function(m,n){return String.fromCharCode(+n);}).replace(/&amp;/g,"&");
+}
+/* shared strings, without the furigana runs Excel stores beside the text */
+function parseSst(xml){
+  var out=[];
+  (xml.match(/<si>[\s\S]*?<\/si>/g)||[]).forEach(function(si){
+    si=si.replace(/<rPh[\s\S]*?<\/rPh>/g,"").replace(/<phoneticPr[^>]*\/>/g,"");
+    var t="";si.replace(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g,function(m,x){t+=x;return m;});
+    out.push(xmlUnesc(t));
+  });
+  return out;
+}
+function readCells(xml,sst){
+  var out={};
+  xml.replace(/<c r="([A-Z]+\d+)"([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g,function(m,ref,attrs,body){
+    if(!body)return m;
+    var t=(attrs.match(/\st="(\w+)"/)||[])[1]||"",v=(body.match(/<v>([\s\S]*?)<\/v>/)||[])[1];
+    if(t==="s"&&v!=null)out[ref]=sst[+v]||"";
+    else if(t==="inlineStr"){var s="";body.replace(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g,function(a,x){s+=x;return a;});out[ref]=xmlUnesc(s);}
+    else if(v!=null)out[ref]=xmlUnesc(v);
+    return m;
+  });
+  return out;
+}
+function splitRef(ref){var m=ref.match(/^([A-Z]+)(\d+)$/);return {c:m[1],r:+m[2],n:colNum(m[1])};}
+function colNum(c){var n=0;for(var i=0;i<c.length;i++)n=n*26+(c.charCodeAt(i)-64);return n;}
+function cellXml(ref,attrs,v){
+  var s=(attrs.match(/\ss="\d+"/)||[""])[0];
+  if(v===""||v==null)return '<c r="'+ref+'"'+s+'/>';
+  if(typeof v==="number")return '<c r="'+ref+'"'+s+'><v>'+v+'</v></c>';
+  return '<c r="'+ref+'"'+s+' t="inlineStr"><is><t xml:space="preserve">'+xmlEsc(String(v))+'</t></is></c>';
+}
+/* cells: {"B14":"text","G23":120.5,"C12":""} — keeps each cell's style, drops its old value */
+function setCells(xml,cells){
+  var byRow={};
+  Object.keys(cells).forEach(function(ref){var p=splitRef(ref);(byRow[p.r]=byRow[p.r]||[]).push(ref);});
+  Object.keys(byRow).forEach(function(r){
+    var rowRe=new RegExp('<row r="'+r+'"([^>]*?)(?:/>|>([\\s\\S]*?)</row>)');
+    var m=xml.match(rowRe),attrs,body;
+    if(m){attrs=m[1];body=m[2]||"";}
+    else{attrs="";body=null;}
+    var inner=body||"";
+    byRow[r].forEach(function(ref){
+      var cRe=new RegExp('<c r="'+ref+'"([^>]*?)(?:/>|>([\\s\\S]*?)</c>)');
+      var cm=inner.match(cRe);
+      if(cm){inner=inner.replace(cm[0],cellXml(ref,cm[1],cells[ref]));return;}
+      var nx=cellXml(ref,"",cells[ref]),n=splitRef(ref).n,placed=false;
+      inner=inner.replace(/<c r="([A-Z]+)\d+"/g,function(all,col){
+        if(!placed&&colNum(col)>n){placed=true;return nx+all;}
+        return all;
+      });
+      if(!placed)inner+=nx;
+    });
+    var row='<row r="'+r+'"'+attrs+'>'+inner+'</row>';
+    if(m){xml=xml.replace(m[0],row);return;}
+    var placedRow=false;
+    xml=xml.replace(/<row r="(\d+)"/g,function(all,rr){
+      if(!placedRow&&+rr>+r){placedRow=true;return row+all;}
+      return all;
+    });
+    if(!placedRow)xml=xml.replace("</sheetData>",row+"</sheetData>");
+  });
+  return xml;
+}
+
+/* ---- which sheet is which ---- */
+function normName(s){return String(s||"").normalize("NFKC").replace(/[\s_　]/g,"");}
+function sheetKind(name){
+  var n=normName(name);
+  if(/^A-J/.test(n))return "J";
+  if(/^A-申請/.test(n))return "app";
+  if(/^A-A/.test(n))return "A";
+  if(/^A-B/.test(n))return "B";
+  if(/^A-E/.test(n))return "E";
+  if(/^A-F/.test(n))return "F";
+  if(/^A-G/.test(n))return "G";
+  return "";
+}
+function fieldByName(name){
+  var n=normName(name);if(!n)return null;
+  var hit=null;
+  store.fields.forEach(function(f){if(!hit&&(normName(f.ja)===n||normName(f.en)===n))hit=f;});
+  return hit;
+}
+function markOf(opts,pick){return opts.map(function(o){return o===pick?"【"+o+"】":o;}).join("・");}
+function pickMark(s,opts){var m=String(s||"").match(/【(.)】/);return m&&opts.indexOf(m[1])>-1?m[1]:"";}
+function cleanName(s){return String(s||"").split("印")[0].replace(/[\s　]+/g," ").trim();}
+function rowsWhere(cells,col,test){
+  return Object.keys(cells).filter(function(ref){var p=splitRef(ref);return p.c===col&&test(normName(cells[ref]));})
+    .map(function(ref){return splitRef(ref).r;}).sort(function(a,b){return a-b;});
+}
+/* the A-E blocks: one per field, neighbours イ〜へ in the rows below */
+function aeBlocks(cells){
+  return rowsWhere(cells,"A",function(t){return /^A-Cで記入した/.test(t);}).map(function(r){
+    var rows=[];
+    for(var k=r+1;k<=r+10&&rows.length<6;k++){if(LETTERS.indexOf((cells["Q"+k]||"").trim())>-1)rows.push(k);}
+    return {r:r,name:cells["T"+r]||"",rows:rows};
+  });
+}
+/* the A-J rows: history, harvest, plan, planned harvest — found by their labels */
+function ajRows(cells){
+  var hist=rowsWhere(cells,"A",function(t){return t.indexOf("履歴")===0;})[0],
+      plan=rowsWhere(cells,"A",function(t){return t.indexOf("計画")===0;})[0],
+      kg=rowsWhere(cells,"A",function(t){return t.indexOf("収穫量")===0;});
+  if(!hist||!plan)return null;
+  return {hist:hist,kg:kg.filter(function(r){return r>hist&&r<plan;})[0],
+          plan:plan,planKg:kg.filter(function(r){return r>plan;})[0]};
+}
+var MCOLS=["B","C","D","E","F","G","H","I","J","K","L","M"];
+
+/* what to write into one sheet, and a line for the report */
+function fillSheet(kind,cells,year,used){
+  var a=appReg(),w={},note="";
+  if(kind==="app"){
+    for(var i=0;i<4;i++){
+      var s=a.staff[i]||{},r=11+i;
+      w["A"+r]=s.name?s.name+"　　　印":"　　　印";
+      w["C"+r]=s.mgr||"";w["E"+r]=s.grader||"";
+      if(s.name)w["F"+r]=s.course||"";
+    }
+    note="担当者 "+a.staff.length+"人";
+  }else if(kind==="A"){
+    var fs=appliedFields(),area=0;fs.forEach(function(f){area+=parseFloat(f.area)||0;});
+    w.F16=Math.round(area*10)/10;w.L16=fs.length;
+    var mg=a.staff.filter(function(s){return s.mgr==="◎";})[0],gr=a.staff.filter(function(s){return s.grader==="◎";})[0];
+    if(mg)w.D26=mg.name;if(gr)w.J26=gr.name;
+    note="申請圃場 "+fs.length+"枚・"+(Math.round(area*10)/10)+"a";
+  }else if(kind==="B"){
+    for(var j=0;j<2;j++){
+      var c=a.contractors[j]||{},rr=12+j;
+      w["A"+rr]=c.name||"";w["C"+rr]=c.addr||"";w["G"+rr]=c.work||"";w["I"+rr]=c.area||"";
+      w["K"+rr]=c.name?(c.use==="専用"?"■有機専用　□併用":"□有機専用　■併用"):"□有機専用　□併用";
+      w["N"+rr]=c.name?(c.contract||"有"):"有・無";
+    }
+    var org=a.org;
+    w.F22=(org[0]||{}).role||"";w.G22=(org[0]||{}).name||"";
+    for(var k=0;k<5;k++){var o=org[k+1]||{};w["F"+(24+k)]=o.role||"";w["H"+(24+k)]=o.name||"";}
+    note="委託先 "+a.contractors.length+"件・組織図 "+a.org.length+"人";
+  }else if(kind==="F"){
+    for(var f=0;f<6;f++){
+      var x=a.facilities[f]||{},r2=12+f;
+      w["B"+r2]=x.type||"";w["G"+r2]=x.count?(isNaN(+x.count)?x.count:+x.count):"";
+      w["I"+r2]=x.type?markOf(["個","共","委"],x.own||"個"):"個･共・委";
+      w["L"+r2]=x.type?markOf(["有","併"],x.use||""):"有・併";
+      w["O"+r2]=x.sep||"";w["T"+r2]=x.pest||"";
+    }
+    if(a.facilities[0]){w.C29=a.facilities[0].type||"";if(a.facilities[0].addr)w.C30=a.facilities[0].addr;}
+    note="施設 "+a.facilities.length+"件";
+  }else if(kind==="G"){
+    var ms=store.machines.filter(function(m){return m.status!=="retired";});
+    for(var g=0;g<18;g++){
+      var mm=ms[g],r3=12+g;
+      if(!mm&&!cells["B"+r3])continue;
+      w["B"+r3]=mm?mm.ja:"";w["G"+r3]=mm&&mm.n?(+mm.n||mm.n):"";w["N"+r3]=mm?(CLEAN[mm.ja]||"使用後に清掃"):"";
+    }
+    note="機械 "+ms.length+"台";
+  }else if(kind==="E"){
+    var names=[];
+    aeBlocks(cells).forEach(function(b){
+      var fd=fieldByName(b.name);if(!fd)return;
+      names.push(fd.ja);used[fd.id]=used[fd.id]||{};used[fd.id].E=true;
+      if(fd.area)w["AB"+b.r]=+fd.area;
+      var nb=a.neighbors[fd.id]||[];
+      b.rows.forEach(function(r4,i4){var n=nb[i4]||{};w["R"+r4]=n.land||"";w["X"+r4]=n.dist||"";w["Z"+r4]=n.measure||"";});
+    });
+    note="周辺 "+names.join("・");
+  }else if(kind==="J"){
+    var fd2=fieldByName(cells.L8);
+    var rows=ajRows(cells);
+    if(!fd2||!rows)return {w:{},note:"圃場がわからないため変更なし"};
+    used[fd2.id]=used[fd2.id]||{};used[fd2.id].J=true;
+    var d=appData(year).filter(function(x){return x.field.id===fd2.id;})[0];
+    if(!d)return {w:{},note:fd2.ja+"：申請圃場ではないため変更なし"};
+    d.months.forEach(function(mo,i5){
+      var col=MCOLS[i5];
+      w[col+(rows.hist-2)]=mo.y;
+      w[col+rows.hist]=d.cells[i5].text||"";
+      if(rows.kg)w[col+rows.kg]=d.cells[i5].kg>0?Math.round(d.cells[i5].kg*10)/10:"";
+    });
+    var plan=planOf(year+1,fd2.id);
+    appMonths(year+1).forEach(function(mo,i6){
+      var col=MCOLS[i6];
+      w[col+(rows.plan-2)]=mo.y;
+      var txt="",pk="";
+      if(plan){var pm=plan[String(mo.m)]||{};txt=pm.text||"";var v=parseFloat(pm.kg);if(!isNaN(v)&&v>0)pk=v;}
+      else txt=d.cells[i6].text||"";
+      w[col+rows.plan]=txt;if(rows.planKg)w[col+rows.planKg]=pk;
+    });
+    note=fd2.ja+"：収穫 "+fmtKg(d.total)+"kg・計画は"+(plan?"アプリの予定":"今年度の実績の写し");
+  }
+  return {w:w,note:note};
+}
+
+/* ---- the template itself, kept on this device ---- */
+function idb(){
+  return new Promise(function(res,rej){
+    var q=indexedDB.open("kiroku-files",1);
+    q.onupgradeneeded=function(){q.result.createObjectStore("files");};
+    q.onsuccess=function(){res(q.result);};q.onerror=function(){rej(q.error);};
+  });
+}
+function idbGet(k){return idb().then(function(db){return new Promise(function(res,rej){
+  var t=db.transaction("files").objectStore("files").get(k);t.onsuccess=function(){res(t.result||null);};t.onerror=function(){rej(t.error);};});});}
+function idbPut(k,v){return idb().then(function(db){return new Promise(function(res,rej){
+  var tx=db.transaction("files","readwrite");tx.objectStore("files").put(v,k);tx.oncomplete=function(){res();};tx.onerror=function(){rej(tx.error);};});});}
+
+/* open the workbook: entries, sheets in order, shared strings */
+function openBook(buf){
+  var ents=readZip(new Uint8Array(buf)),by={};
+  ents.forEach(function(e){by[e.name]=e;});
+  if(!by["xl/workbook.xml"])return Promise.reject(new Error("not xlsx"));
+  return Promise.all([unpackText(by["xl/workbook.xml"]),unpackText(by["xl/_rels/workbook.xml.rels"]),
+                      by["xl/sharedStrings.xml"]?unpackText(by["xl/sharedStrings.xml"]):Promise.resolve("")])
+  .then(function(t){
+    var rel={};
+    t[1].replace(/<Relationship\s[^>]*>/g,function(tag){
+      var id=(tag.match(/Id="([^"]+)"/)||[])[1],tg=(tag.match(/Target="([^"]+)"/)||[])[1];
+      if(id&&tg)rel[id]=tg.charAt(0)==="/"?tg.slice(1):"xl/"+tg;return tag;
+    });
+    var sheets=[];
+    t[0].replace(/<sheet\s[^>]*>/g,function(tag){
+      var nm=xmlUnesc((tag.match(/name="([^"]*)"/)||[])[1]||""),id=(tag.match(/r:id="([^"]+)"/)||[])[1];
+      if(rel[id]&&by[rel[id]])sheets.push({name:nm,path:rel[id],kind:sheetKind(nm)});return tag;
+    });
+    return {ents:ents,by:by,sheets:sheets,sst:parseSst(t[2]),wbXml:t[0]};
+  });
+}
+function tplStatus(){
+  var box=document.getElementById("tplStatus");if(!box)return;
+  idbGet("template").then(function(t){
+    box.textContent="";
+    if(!t){bi(box,"まだ申請書が入っていません。","No application workbook on this device yet.");return;}
+    bi(box,"土台："+t.name+"（"+Math.round(t.size/1024/1024*10)/10+"MB・"+fmtStamp(t.at)+" に読み込み）",
+       "Template: "+t.name);
+  }).catch(function(){box.textContent="";bi(box,"この端末では申請書を保存できません。","This device cannot keep the workbook.");});
+}
+function loadTemplate(file){
+  if(!file)return;
+  var rd=new FileReader();
+  rd.onload=function(){
+    var buf=rd.result;
+    openBook(buf).then(function(bk){
+      var kinds=bk.sheets.filter(function(s){return s.kind;}).length;
+      if(!kinds)throw new Error("no sheets");
+      return idbPut("template",{name:file.name,size:file.size,at:Date.now(),buf:buf});
+    }).then(function(){
+      tplStatus();
+      toast({ja:"申請書を土台として読み込みました",en:"Workbook loaded as the template"});
+    }).catch(function(){toast({ja:"有機JASの申請書として読めませんでした",en:"Could not read this as the application workbook"});});
+  };
+  rd.readAsArrayBuffer(file);
+}
+function withTemplate(fn){
+  return idbGet("template").then(function(t){
+    if(!t){toast({ja:"先に申請書(Excel)を読み込んでください",en:"Load the application workbook first"});return null;}
+    return openBook(t.buf).then(function(bk){return fn(bk,t);});
+  }).catch(function(e){
+    toast({ja:"申請書の処理に失敗しました",en:"Could not process the workbook"});
+    if(window.console)console.error(e);
+  });
+}
+/* fill the template from the records and registers, and hand the file back */
+function exportFromTemplate(year){
+  var rep=document.getElementById("tplReport");
+  return withTemplate(function(bk,t){
+    var used={},lines=[],changed={};
+    return Promise.all(bk.sheets.filter(function(s){return s.kind;}).map(function(s){
+      return unpackText(bk.by[s.path]).then(function(xml){
+        var res=fillSheet(s.kind,readCells(xml,bk.sst),year,used);
+        if(Object.keys(res.w).length)changed[s.path]=setCells(xml,res.w);
+        lines.push({name:s.name,note:res.note});
+      });
+    })).then(function(){
+      appliedFields().forEach(function(f){
+        var u=used[f.id]||{};
+        if(!u.J)lines.push({name:"A-J",note:"⚠ "+f.ja+" の A-J シートがありません。シートをコピーして追加してください",warn:true});
+        if(!u.E)lines.push({name:"A-E",note:"⚠ "+f.ja+" が周辺図(A-E)にありません",warn:true});
+      });
+      /* Excel recomputes the sums (A-J harvest totals) when the file is opened */
+      var wb=bk.wbXml.replace(/<calcPr([^>]*?)\/>/,function(m,at){return at.indexOf("fullCalcOnLoad")>-1?m:'<calcPr'+at+' fullCalcOnLoad="1"/>';});
+      changed["xl/workbook.xml"]=wb;
+      var out=bk.ents.map(function(e){
+        if(changed[e.name]==null)return e;
+        var data=new TextEncoder().encode(changed[e.name]);
+        return {name:e.name,method:0,crc:crc32(data),usize:data.length,raw:data};
+      });
+      var blob=writeZip(out),url=URL.createObjectURL(blob);
+      var a=document.createElement("a");a.href=url;
+      a.download=t.name.replace(/\.xlsx$/i,"")+"_記録から_"+year+"年度.xlsx";
+      a.style.display="none";document.body.appendChild(a);a.click();
+      setTimeout(function(){URL.revokeObjectURL(url);a.remove();},2000);
+      if(rep){
+        rep.textContent="";
+        rep.appendChild(bi(el("p","lb"),"書き込んだ内容","What was filled in"));
+        var ul=el("ul","tplrep");
+        lines.forEach(function(l){var li=el("li",l.warn?"warn":null,(l.warn?"":l.name+"："+(l.note||"変更なし")));if(l.warn)li.textContent=l.note;ul.appendChild(li);});
+        rep.appendChild(ul);
+      }
+      toast(MSG.exported);
+    });
+  });
+}
+/* read the registers back out of the workbook (first time, or to catch up with hand edits) */
+function importRegisters(){
+  return withTemplate(function(bk){
+    var got={staff:[],org:[],contractors:[],facilities:[],neighbors:{},machines:[]};
+    return Promise.all(bk.sheets.filter(function(s){return /^(app|B|E|F|G)$/.test(s.kind);}).map(function(s){
+      return unpackText(bk.by[s.path]).then(function(xml){
+        var c=readCells(xml,bk.sst),i;
+        if(s.kind==="app"){
+          for(i=11;i<=14;i++){
+            var nm=cleanName(c["A"+i]);if(!nm)continue;
+            var co=String(c["F"+i]||"").trim();
+            got.staff.push({name:nm,mgr:(c["C"+i]||"").trim(),grader:(c["E"+i]||"").trim(),course:/\d/.test(co)?co:""});
+          }
+        }else if(s.kind==="B"){
+          if(c.G22)got.org.push({role:(c.F22||"").trim(),name:cleanName(c.G22)});
+          for(i=24;i<=28;i++)if(c["H"+i])got.org.push({role:(c["F"+i]||"").trim(),name:cleanName(c["H"+i])});
+          for(i=12;i<=13;i++){
+            if(!c["A"+i])continue;
+            got.contractors.push({name:cleanName(c["A"+i]),addr:(c["C"+i]||"").trim(),work:(c["G"+i]||"").trim(),
+              area:(c["I"+i]||"").trim(),use:/■有機専用/.test(c["K"+i]||"")?"専用":"併用",
+              contract:/無/.test(c["N"+i]||"")&&!/有/.test(c["N"+i]||"")?"無":"有"});
+          }
+        }else if(s.kind==="F"){
+          for(i=12;i<=17;i++){
+            if(!c["B"+i])continue;
+            got.facilities.push({type:c["B"+i].trim(),count:c["G"+i]||"",own:pickMark(c["I"+i],["個","共","委"])||"個",
+              use:pickMark(c["L"+i],["有","併"]),sep:(c["O"+i]||"").trim(),pest:(c["T"+i]||"").trim(),
+              addr:c.C29&&c.C29.trim()===c["B"+i].trim()?(c.C30||"").trim():"",size:""});
+          }
+        }else if(s.kind==="G"){
+          for(i=12;i<=29;i++){
+            var mn=(c["B"+i]||"").trim();if(!mn||mn==="トラクター")continue;
+            got.machines.push({ja:mn,n:c["G"+i]||""});
+          }
+        }else if(s.kind==="E"){
+          aeBlocks(c).forEach(function(b){
+            var fd=fieldByName(b.name);if(!fd)return;
+            got.neighbors[fd.id]=b.rows.map(function(r){
+              return {land:(c["R"+r]||"").trim(),dist:(c["X"+r]||"").trim(),measure:(c["Z"+r]||"").trim()};
+            });
+          });
+        }
+      });
+    })).then(function(){
+      var a=appReg();
+      var has=a.staff.length||a.org.length||a.contractors.length||a.facilities.length||Object.keys(a.neighbors).length;
+      var msg="申請書から台帳に読み込みます：担当者 "+got.staff.length+"人・組織図 "+got.org.length+"人・委託先 "+got.contractors.length+
+              "件・施設 "+got.facilities.length+"件・周辺 "+Object.keys(got.neighbors).length+"圃場・機械 "+got.machines.length+"種類";
+      if(has)msg+="\n\nいま台帳にある内容は置き換わります。\nThis replaces what the registers hold now.";
+      if(!confirm(msg))return;
+      store.app={staff:got.staff,org:got.org,contractors:got.contractors,facilities:got.facilities,neighbors:got.neighbors};
+      saveApp();
+      /* machines: update the count of ones the app knows, add the rest (records point at their ids) */
+      if(got.machines.length){
+        got.machines.forEach(function(gm){
+          var hit=store.machines.filter(function(m){return normName(m.ja)===normName(gm.ja);})[0];
+          if(hit){hit.n=gm.n;if(hit.status==="retired")delete hit.status;}
+          else{
+            store.machines.push({id:nextId(store.machines,"M"),ja:gm.ja,en:"",n:gm.n,shared:false});
+          }
+        });
+        store.mastersUpdated=Date.now();store.mastersDirty=true;persist();scheduleSync();renderMaster();
+      }
+      renderRegisters();
+      toast({ja:"台帳に読み込みました。内容を確かめてください",en:"Registers filled from the workbook — please check them"});
+    });
+  });
+}
+
 function renderAppCard(){
   var sel=document.getElementById("appYear");
   if(!sel)return;
@@ -4929,7 +5501,7 @@ function showView(v){
   if(v==="grade")renderGrade();
   if(v==="clean")renderClean();
   if(v==="list")renderList();
-  if(v==="master"){renderMaster();renderPlan();renderAppCard();}
+  if(v==="master"){renderMaster();renderPlan();renderAppCard();renderRegisters();tplStatus();}
   if(v==="pdf")renderPdfView();
   updateEditNote();
   window.scrollTo(0,0);
@@ -5107,6 +5679,12 @@ document.getElementById("fyXlsx").onclick=function(){
   var rg=fyRange();
   xlsxRecords(rg[0],rg[1],fySel.year==="last"?"直近1年":fySel.year+"年度",null,[fySel.field]);
 };
+document.getElementById("tplFile").onchange=function(){loadTemplate(this.files&&this.files[0]);this.value="";};
+document.getElementById("tplExport").onclick=function(){
+  var y=parseInt(document.getElementById("appYear").value,10)||appYears()[0];
+  exportFromTemplate(y);
+};
+document.getElementById("tplImport").onclick=function(){importRegisters();};
 document.getElementById("pdfMonth").onclick=function(){pdfMonthRecords(mvY,mvM);};
 document.getElementById("pdfCal").onclick=function(){pdfMonthCalendar(mvY,mvM);};
 
