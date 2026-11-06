@@ -311,6 +311,8 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-
 .reg.nb{grid-template-columns:22px repeat(3,minmax(0,1fr));align-items:end}
 .reg.nb .nbl{font-weight:700;padding-bottom:10px}
 @media (max-width:520px){.reg.nb{grid-template-columns:22px minmax(0,1fr)}.reg.nb .regf{grid-column:2}}
+.regfold{margin:10px 0}
+.regfold>summary{cursor:pointer;padding:6px 0;margin:0}
 .tplbox{margin-top:16px;padding-top:12px;border-top:1px dashed var(--line)}
 .tplrep{margin:6px 0 0;padding-left:18px;font-size:12.5px;color:var(--muted)}
 .tplrep li.warn{color:var(--warn);font-weight:700}
@@ -1221,6 +1223,32 @@ p.secsub .en{display:block;color:var(--faint)}
         <div id="tplReport"></div>
       </div>
     </div>
+
+    <div class="card">
+      <h2 class="sec"><span class="ja">加工の申請書</span><span class="en">Processing application</span></h2>
+      <p class="secsub">有機加工食品の申請書(B様式)を、提出した Excel を土台に作ります。製品・施設・機械・配合・工程フローを下の台帳で管理し、B-F と B-G の番号と名称は B-J に揃えて書き出します。図面・組織図・矢印の図はそのまま残ります。申請書はこの端末にだけ保存されます。<span class="en">Builds the organic processed food application (B forms) on top of the submitted Excel workbook. Products, facilities, machines, recipes and flows live in the register below, and numbers and names on B-F and B-G always follow B-J. Floor plans, the org chart and the flow arrows stay as they are. The workbook is kept on this device only.</span></p>
+      <p class="hint" id="tplBStatus"></p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <label class="btn" for="tplBFile"><span class="ja">申請書(Excel)を読み込む</span><span class="en">Load the workbook</span></label>
+        <input type="file" id="tplBFile" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" class="hidden">
+        <button class="btn ghost" type="button" id="tplBImport"><span class="ja">申請書から台帳に読み込む</span><span class="en">Fill the register from the workbook</span></button>
+      </div>
+      <div id="bRegBox"></div>
+      <div class="tplbox">
+        <div class="field">
+          <label class="lb" for="bYear"><span class="ja">記録を見る年度</span><span class="en">Records year</span></label>
+          <select id="bYear"></select>
+        </div>
+        <div id="bCheck"></div>
+        <button class="btn primary" type="button" id="tplBExport"><span class="ja">加工の申請書を書き出す</span><span class="en">Export the application</span></button>
+        <div class="field" style="margin-top:12px">
+          <label class="lb" for="bLot"><span class="ja">トレース資料にする格付ロット</span><span class="en">Graded lot for the trace record</span></label>
+          <select id="bLot"></select>
+        </div>
+        <button class="btn" type="button" id="tplBAttach"><span class="ja">トレース資料と記録を書き出す</span><span class="en">Export the trace and records</span></button>
+        <div id="tplBReport"></div>
+      </div>
+    </div>
   </section>
 </main>
 
@@ -1725,7 +1753,7 @@ function sync(){
     }
     if(m.app&&m.app.body&&(m.app.updatedAt||0)>(store.appUpdated||0)){
       store.app=m.app.body;store.appUpdated=m.app.updatedAt;store.appDirty=false;changed=true;
-      renderRegisters();
+      renderRegisters();renderBReg();
     }
     if(d.now){lastSync=d.now;try{localStorage.setItem(KEY+"_since",String(lastSync));}catch(e){}}
     if(changed){persist();renderList();}
@@ -4035,7 +4063,7 @@ function coverSheet(year){
   c.A19="A-I";c.B19="格付品目の出荷先、JASマーク包材";
   c.A20="A-K / A-L / A-M";c.B20="種子・苗・育苗（該当なしのチェック）";
   c.A21="A-N / A-O";c.B21="投入資材・農薬（使用なしのチェック、使った資材があれば記入）";
-  c.A22="加工の様式";c.B22="加工はHOASの様式番号が別にあります。上の加工シートは中身の下書きとして使い、様式に写してください";
+  c.A22="加工の様式";c.B22="加工の申請書(B様式)は、台帳タブの「加工の申請書」から書き出せます";
   c.A24="確認したほうがよい点";
   var iss=appIssues(year);
   if(!iss.length)c.A25="（特にありません）";
@@ -4043,8 +4071,7 @@ function coverSheet(year){
   return {name:"はじめに",cells:c,cols:[24,60]};
 }
 /* ---- processing side: the sheets the 加工 application will want ----
-   HOAS uses its own form numbers for processing, so these are named by what
-   they contain rather than by a form code we have not seen. */
+   the record lists that go with the B forms, named by what they contain. */
 function inYear(date,year){
   if(!date)return false;
   return date>=(year-1)+"-10-01"&&date<=year+"-09-30";
@@ -4228,32 +4255,7 @@ function renderRegisters(){
     var spec=REG[key],list=a[key];
     var sec=el("div","regsec");
     sec.appendChild(bi(el("h3","regh"),spec.ja,spec.en));
-    list.forEach(function(row,i){
-      var r=el("div","reg");
-      spec.cols.forEach(function(c){
-        var lab=el("label","regf"+(c.wide?" wide":""));
-        lab.appendChild(bi(el("span","lb"),c.ja,c.en));
-        var inp;
-        if(c.opts){
-          inp=document.createElement("select");
-          c.opts.forEach(function(o){
-            var op=document.createElement("option");op.value=o[0];op.textContent=o[1];
-            if((row[c.k]||"")===o[0])op.selected=true;inp.appendChild(op);
-          });
-          if(!row[c.k]&&c.opts[0][0])row[c.k]=c.opts[0][0];
-        }else{inp=document.createElement("input");inp.type="text";inp.value=row[c.k]||"";}
-        inp.onchange=function(){row[c.k]=this.value;saveApp();};
-        lab.appendChild(inp);r.appendChild(lab);
-      });
-      var del=bi(el("button","btn ghost danger regdel"),"この行を消す","Remove");del.type="button";
-      del.onclick=function(){list.splice(i,1);saveApp();renderRegisters();};
-      r.appendChild(del);sec.appendChild(r);
-    });
-    if(list.length<spec.max){
-      var add=bi(el("button","btn ghost"),"＋ 追加","Add");add.type="button";
-      add.onclick=function(){list.push({});saveApp();renderRegisters();};
-      sec.appendChild(add);
-    }else sec.appendChild(bi(el("p","hint"),"申請書の欄は"+spec.max+"行までです。","The form has room for "+spec.max+" rows."));
+    regList(sec,spec,list,renderRegisters);
     box.appendChild(sec);
   });
   /* surroundings of each applied field (A-E) */
@@ -4548,7 +4550,8 @@ function idbPut(k,v){return idb().then(function(db){return new Promise(function(
   var tx=db.transaction("files","readwrite");tx.objectStore("files").put(v,k);tx.oncomplete=function(){res();};tx.onerror=function(){rej(tx.error);};});});}
 
 /* open the workbook: entries, sheets in order, shared strings */
-function openBook(buf){
+var TPL={a:{key:"template",status:"tplStatus",kind:sheetKind},b:{key:"templateB",status:"tplBStatus",kind:sheetKindB}};
+function openBook(buf,kind){
   var ents=readZip(new Uint8Array(buf)),by={};
   ents.forEach(function(e){by[e.name]=e;});
   if(!by["xl/workbook.xml"])return Promise.reject(new Error("not xlsx"));
@@ -4563,49 +4566,74 @@ function openBook(buf){
     var sheets=[];
     t[0].replace(/<sheet\s[^>]*>/g,function(tag){
       var nm=xmlUnesc((tag.match(/name="([^"]*)"/)||[])[1]||""),id=(tag.match(/r:id="([^"]+)"/)||[])[1];
-      if(rel[id]&&by[rel[id]])sheets.push({name:nm,path:rel[id],kind:sheetKind(nm)});return tag;
+      if(rel[id]&&by[rel[id]])sheets.push({name:nm,path:rel[id],kind:(kind||sheetKind)(nm)});return tag;
     });
     return {ents:ents,by:by,sheets:sheets,sst:parseSst(t[2]),wbXml:t[0]};
   });
 }
-function tplStatus(){
-  var box=document.getElementById("tplStatus");if(!box)return;
-  idbGet("template").then(function(t){
+function tplStatus(form){
+  var tp=TPL[form||"a"],box=document.getElementById(tp.status);if(!box)return;
+  idbGet(tp.key).then(function(t){
     box.textContent="";
     if(!t){bi(box,"まだ申請書が入っていません。","No application workbook on this device yet.");return;}
     bi(box,"土台："+t.name+"（"+Math.round(t.size/1024/1024*10)/10+"MB・"+fmtStamp(t.at)+" に読み込み）",
        "Template: "+t.name);
   }).catch(function(){box.textContent="";bi(box,"この端末では申請書を保存できません。","This device cannot keep the workbook.");});
 }
-function loadTemplate(file){
+function loadTemplate(file,form){
   if(!file)return;
+  var tp=TPL[form||"a"];
   var rd=new FileReader();
   rd.onload=function(){
     var buf=rd.result;
-    openBook(buf).then(function(bk){
+    openBook(buf,tp.kind).then(function(bk){
       var kinds=bk.sheets.filter(function(s){return s.kind;}).length;
       if(!kinds)throw new Error("no sheets");
-      return idbPut("template",{name:file.name,size:file.size,at:Date.now(),buf:buf});
+      return idbPut(tp.key,{name:file.name,size:file.size,at:Date.now(),buf:buf});
     }).then(function(){
-      tplStatus();
+      tplStatus(form);
       toast({ja:"申請書を土台として読み込みました",en:"Workbook loaded as the template"});
     }).catch(function(){toast({ja:"有機JASの申請書として読めませんでした",en:"Could not read this as the application workbook"});});
   };
   rd.readAsArrayBuffer(file);
 }
-function withTemplate(fn){
-  return idbGet("template").then(function(t){
+function withTemplate(form,fn){
+  var tp=TPL[form];
+  return idbGet(tp.key).then(function(t){
     if(!t){toast({ja:"先に申請書(Excel)を読み込んでください",en:"Load the application workbook first"});return null;}
-    return openBook(t.buf).then(function(bk){return fn(bk,t);});
+    return openBook(t.buf,tp.kind).then(function(bk){return fn(bk,t);});
   }).catch(function(e){
     toast({ja:"申請書の処理に失敗しました",en:"Could not process the workbook"});
     if(window.console)console.error(e);
   });
 }
+/* put the changed sheets back and hand the file over; Excel recomputes on opening */
+function writeBook(bk,t,changed,year){
+  changed["xl/workbook.xml"]=bk.wbXml.replace(/<calcPr([^>]*?)\/>/,function(m,at){return at.indexOf("fullCalcOnLoad")>-1?m:'<calcPr'+at+' fullCalcOnLoad="1"/>';});
+  var out=bk.ents.map(function(e){
+    if(changed[e.name]==null)return e;
+    var data=new TextEncoder().encode(changed[e.name]);
+    return {name:e.name,method:0,crc:crc32(data),usize:data.length,raw:data};
+  });
+  var blob=writeZip(out),url=URL.createObjectURL(blob);
+  var a=document.createElement("a");a.href=url;
+  a.download=t.name.replace(/\.xlsx$/i,"")+"_記録から_"+year+"年度.xlsx";
+  a.style.display="none";document.body.appendChild(a);a.click();
+  setTimeout(function(){URL.revokeObjectURL(url);a.remove();},2000);
+}
+function showReport(rep,lines){
+  if(!rep)return;
+  rep.textContent="";
+  if(!lines.length)return;
+  rep.appendChild(bi(el("p","lb"),"書き込んだ内容","What was filled in"));
+  var ul=el("ul","tplrep");
+  lines.forEach(function(l){var li=el("li",l.warn?"warn":null,(l.warn?"":l.name+"："+(l.note||"変更なし")));if(l.warn)li.textContent=l.note;ul.appendChild(li);});
+  rep.appendChild(ul);
+}
 /* fill the template from the records and registers, and hand the file back */
 function exportFromTemplate(year){
   var rep=document.getElementById("tplReport");
-  return withTemplate(function(bk,t){
+  return withTemplate("a",function(bk,t){
     var used={},lines=[],changed={};
     return Promise.all(bk.sheets.filter(function(s){return s.kind;}).map(function(s){
       return unpackText(bk.by[s.path]).then(function(xml){
@@ -4619,33 +4647,15 @@ function exportFromTemplate(year){
         if(!u.J)lines.push({name:"A-J",note:"⚠ "+f.ja+" の A-J シートがありません。シートをコピーして追加してください",warn:true});
         if(!u.E)lines.push({name:"A-E",note:"⚠ "+f.ja+" が周辺図(A-E)にありません",warn:true});
       });
-      /* Excel recomputes the sums (A-J harvest totals) when the file is opened */
-      var wb=bk.wbXml.replace(/<calcPr([^>]*?)\/>/,function(m,at){return at.indexOf("fullCalcOnLoad")>-1?m:'<calcPr'+at+' fullCalcOnLoad="1"/>';});
-      changed["xl/workbook.xml"]=wb;
-      var out=bk.ents.map(function(e){
-        if(changed[e.name]==null)return e;
-        var data=new TextEncoder().encode(changed[e.name]);
-        return {name:e.name,method:0,crc:crc32(data),usize:data.length,raw:data};
-      });
-      var blob=writeZip(out),url=URL.createObjectURL(blob);
-      var a=document.createElement("a");a.href=url;
-      a.download=t.name.replace(/\.xlsx$/i,"")+"_記録から_"+year+"年度.xlsx";
-      a.style.display="none";document.body.appendChild(a);a.click();
-      setTimeout(function(){URL.revokeObjectURL(url);a.remove();},2000);
-      if(rep){
-        rep.textContent="";
-        rep.appendChild(bi(el("p","lb"),"書き込んだ内容","What was filled in"));
-        var ul=el("ul","tplrep");
-        lines.forEach(function(l){var li=el("li",l.warn?"warn":null,(l.warn?"":l.name+"："+(l.note||"変更なし")));if(l.warn)li.textContent=l.note;ul.appendChild(li);});
-        rep.appendChild(ul);
-      }
+      writeBook(bk,t,changed,year);
+      showReport(rep,lines);
       toast(MSG.exported);
     });
   });
 }
 /* read the registers back out of the workbook (first time, or to catch up with hand edits) */
 function importRegisters(){
-  return withTemplate(function(bk){
+  return withTemplate("a",function(bk){
     var got={staff:[],org:[],contractors:[],facilities:[],neighbors:{},machines:[]};
     return Promise.all(bk.sheets.filter(function(s){return /^(app|B|E|F|G)$/.test(s.kind);}).map(function(s){
       return unpackText(bk.by[s.path]).then(function(xml){
@@ -4693,7 +4703,7 @@ function importRegisters(){
               "件・施設 "+got.facilities.length+"件・周辺 "+Object.keys(got.neighbors).length+"圃場・機械 "+got.machines.length+"種類";
       if(has)msg+="\n\nいま台帳にある内容は置き換わります。\nThis replaces what the registers hold now.";
       if(!confirm(msg))return;
-      store.app={staff:got.staff,org:got.org,contractors:got.contractors,facilities:got.facilities,neighbors:got.neighbors};
+      store.app={staff:got.staff,org:got.org,contractors:got.contractors,facilities:got.facilities,neighbors:got.neighbors,b:(store.app||{}).b};
       saveApp();
       /* machines: update the count of ones the app knows, add the rest (records point at their ids) */
       if(got.machines.length){
@@ -4710,6 +4720,625 @@ function importRegisters(){
       toast({ja:"台帳に読み込みました。内容を確かめてください",en:"Registers filled from the workbook — please check them"});
     });
   });
+}
+
+/* ================= the processing application (HOAS B forms) =================
+   Same idea as the renewal workbook above: the last B workbook (63 sheets, with
+   flow arrows, floor plans and an org chart) stays on this device and only the
+   cells the register and the records can answer are rewritten. Products are the
+   spine: their position in B-J decides which B-F / B-G sheet they go into, so
+   the numbers and names on those sheets always agree with B-J. */
+var USE_OPTS=[["","—"],["併用","併用 Shared"],["専用","有機専用 Organic only"]];
+var BREG={
+  staff:{max:4,ja:"担当者（B-申請）",en:"Staff",cols:REG.staff.cols},
+  facilities:{max:8,ja:"施設（B-C）",en:"Facilities",cols:[
+    {k:"name",ja:"施設名",en:"Name"},{k:"mgr",ja:"責任者名",en:"Person in charge"},
+    {k:"work",ja:"使用する作業工程",en:"Work done there"},
+    {k:"graded",ja:"格付",en:"Grading here",opts:[["無","無 No"],["有","有 Yes"]]},
+    {k:"area",ja:"広さ(㎡)",en:"Area (m²)"},
+    {k:"use",ja:"非有機との区分",en:"Organic only / shared",opts:USE_OPTS}]},
+  chems:{max:3,ja:"施設で使う薬剤（B-C）",en:"Chemicals used in the facilities",cols:[
+    {k:"fac",ja:"施設名",en:"Facility"},{k:"name",ja:"薬剤名",en:"Chemical"},
+    {k:"src",ja:"入手先",en:"Source"},{k:"purpose",ja:"使用目的",en:"Purpose"},
+    {k:"how",ja:"使用方法",en:"How used"},{k:"stage",ja:"使用する作業工程",en:"Work step"}]},
+  ships:{max:9,ja:"主な出荷先（B-I）",en:"Main buyers",cols:[{k:"name",ja:"出荷先名",en:"Buyer",wide:true}]},
+  equip:{max:24,ja:"機械・器具",en:"Machines and tools",cols:[
+    {k:"name",ja:"機械・装置名",en:"Name"},{k:"maker",ja:"メーカー・規格",en:"Maker / spec"},
+    {k:"use",ja:"非有機との区分",en:"Organic only / shared",opts:USE_OPTS},
+    {k:"clean",ja:"清掃・洗浄・区分の方法",en:"Cleaning and separation",wide:true}]},
+  raws:{max:6,ja:"原材料（B-F）",en:"Ingredients",cols:[
+    {k:"name",ja:"有機原材料名",en:"Ingredient"},{k:"maker",ja:"格付表示事業者",en:"JAS-graded by"},
+    {k:"cert",ja:"認証機関",en:"Certifier"},{k:"kg",ja:"1ロットの重量(kg)",en:"Weight per lot (kg)"},
+    {k:"ratio",ja:"配合割合(％)",en:"Ratio (%)"}]},
+  steps:{max:12,ja:"工程（B-G）",en:"Flow steps",cols:[
+    {k:"ja",ja:"工程",en:"Step"},{k:"note",ja:"説明",en:"Note",wide:true}]}
+};
+var BPROD_COLS=[
+  {k:"label",ja:"一括表示の名称",en:"Name on the label"},{k:"name",ja:"商品名",en:"Product name"},
+  {k:"weight",ja:"重量",en:"Pack sizes"},{k:"plan",ja:"年間生産予定",en:"Planned per year"},
+  {k:"retail",ja:"小売",en:"Retail",opts:[["","□"],["1","■"]]},{k:"biz",ja:"業務用",en:"Trade",opts:[["","□"],["1","■"]]},
+  {k:"own",ja:"自社",en:"Own brand",opts:[["","□"],["1","■"]]},{k:"pb",ja:"ＰＢ",en:"Private label",opts:[["","□"],["1","■"]]},
+  {k:"site",ja:"製造場所",en:"Where it is made"},{k:"siteNo",ja:"場所の№",en:"Place no."},
+  {k:"gradeAt",ja:"格付場所",en:"Where it is graded"}];
+function appB(){
+  var a=appReg();
+  if(!a.b)a.b={};
+  ["staff","facilities","chems","ships","products"].forEach(function(k){if(!a.b[k])a.b[k]=[];});
+  if(!a.b.equip)a.b.equip=[[],[],[]];
+  return a.b;
+}
+function bGroup(small){return appB().products.filter(function(p){return !!p.small===!!small;});}
+function regField(row,c,save,cls){
+  var lab=el("label","regf"+(c.wide?" wide":"")+(cls?" "+cls:""));
+  lab.appendChild(bi(el("span","lb"),c.ja,c.en));
+  var inp;
+  if(c.opts){
+    inp=document.createElement("select");
+    c.opts.forEach(function(o){
+      var op=document.createElement("option");op.value=o[0];op.textContent=o[1];
+      if((row[c.k]||"")===o[0])op.selected=true;inp.appendChild(op);
+    });
+    if(!row[c.k]&&c.opts[0][0])row[c.k]=c.opts[0][0];
+  }else{inp=document.createElement("input");inp.type=c.type||"text";inp.value=row[c.k]||"";}
+  inp.onchange=function(){row[c.k]=this.value;save();};
+  lab.appendChild(inp);
+  return lab;
+}
+function regList(sec,spec,list,rerender){
+  list.forEach(function(row,i){
+    var r=el("div","reg");
+    spec.cols.forEach(function(c){r.appendChild(regField(row,c,saveApp));});
+    var del=bi(el("button","btn ghost danger regdel"),"この行を消す","Remove");del.type="button";
+    del.onclick=function(){list.splice(i,1);saveApp();rerender();};
+    r.appendChild(del);sec.appendChild(r);
+  });
+  if(list.length<spec.max){
+    var add=bi(el("button","btn ghost"),"＋ 追加","Add");add.type="button";
+    add.onclick=function(){list.push({});saveApp();rerender();};
+    sec.appendChild(add);
+  }else sec.appendChild(bi(el("p","hint"),"申請書の欄は"+spec.max+"行までです。","The form has room for "+spec.max+" rows."));
+}
+var bOpen={},bSel={prod:0,site:0};
+function bFold(box,key,ja,en,count){
+  var d=document.createElement("details");d.className="regfold";d.open=!!bOpen[key];
+  d.ontoggle=function(){bOpen[key]=d.open;};
+  var s=el("summary","regh");bi(s,ja+(count!=null?"（"+count+"）":""),en);d.appendChild(s);
+  box.appendChild(d);return d;
+}
+function renderBReg(){
+  var box=document.getElementById("bRegBox");if(!box)return;
+  box.textContent="";
+  var b=appB();
+  var head=el("div","reg");
+  [{k:"applyKind",ja:"申請の区分",en:"Application type",opts:[["new","新規 New"],["renew","継続 Renewal"]]},
+   {k:"cert",ja:"認証番号（継続のとき）",en:"Certificate no. (renewal)"},
+   {k:"changed",ja:"申請内容の変更",en:"Any changes",opts:[["no","変更なし No change"],["yes","変更あり Changed"]]},
+   {k:"notified",ja:"規程を周知した日",en:"Rules explained to staff on",type:"date"},
+   {k:"reviewLast",ja:"昨年、規程を見直した日",en:"Rules reviewed last year",type:"date"},
+   {k:"reviewThis",ja:"今年、規程を見直した日",en:"Rules reviewed this year",type:"date"}
+  ].forEach(function(c){head.appendChild(regField(b,c,saveApp));});
+  box.appendChild(head);
+  ["staff","facilities","chems","ships"].forEach(function(key){
+    var spec=BREG[key];
+    regList(bFold(box,key,spec.ja,spec.en,b[key].length),spec,b[key],renderBReg);
+  });
+  /* machines, one facility at a time: the B-E sheet has three blocks */
+  var eq=bFold(box,"equip","機械・器具（B-E）","Machines and tools",null);
+  var es=document.createElement("select");
+  [0,1,2].forEach(function(i){
+    var op=document.createElement("option");op.value=i;
+    op.textContent="№"+(i+1)+"　"+((b.facilities[i]||{}).name||"（施設なし）")+"（"+(b.equip[i]||[]).length+"）";
+    if(i===bSel.site)op.selected=true;es.appendChild(op);
+  });
+  es.onchange=function(){bSel.site=+this.value;renderBReg();};
+  var el1=el("label","regf wide");el1.appendChild(bi(el("span","lb"),"施設","Facility"));el1.appendChild(es);eq.appendChild(el1);
+  if(!b.equip[bSel.site])b.equip[bSel.site]=[];
+  regList(eq,BREG.equip,b.equip[bSel.site],renderBReg);
+  /* products: the B-J line with its B-F recipe and B-G flow */
+  var pd=bFold(box,"products","製品（B-J・B-F・B-G）","Products",b.products.length);
+  var ps=document.createElement("select");
+  if(bSel.prod>=b.products.length)bSel.prod=0;
+  var num={};
+  b.products.forEach(function(p,i){
+    var g=p.small?"s":"p";num[g]=(num[g]||0)+1;
+    var op=document.createElement("option");op.value=i;
+    op.textContent=(p.small?"小分け ":"加工 ")+num[g]+"　"+(p.name||p.label||"（名前なし）");
+    if(i===bSel.prod)op.selected=true;ps.appendChild(op);
+  });
+  ps.onchange=function(){bSel.prod=+this.value;renderBReg();};
+  var pl=el("label","regf wide");pl.appendChild(bi(el("span","lb"),"製品","Product"));pl.appendChild(ps);pd.appendChild(pl);
+  var cur=b.products[bSel.prod];
+  if(cur){
+    var pr=el("div","reg");
+    pr.appendChild(regField(cur,{k:"tea",ja:"記録の茶の種類",en:"Tea type in the records",
+      opts:[["","—"]].concat(TEAS.map(function(t){return [t.k,t.ja];}))},saveApp));
+    BPROD_COLS.forEach(function(c){pr.appendChild(regField(cur,c,saveApp));});
+    pd.appendChild(pr);
+    if(!cur.raws)cur.raws=[];if(!cur.steps)cur.steps=[];
+    pd.appendChild(bi(el("h3","regh"),BREG.raws.ja,BREG.raws.en));
+    regList(pd,BREG.raws,cur.raws,renderBReg);
+    pd.appendChild(bi(el("h3","regh"),BREG.steps.ja,BREG.steps.en));
+    regList(pd,BREG.steps,cur.steps,renderBReg);
+    var rm=bi(el("button","btn ghost danger"),"この製品を消す","Remove this product");rm.type="button";
+    rm.onclick=function(){
+      if(!confirm("「"+(cur.name||cur.label||"")+"」を消しますか？後ろの製品の番号が1つずつ繰り上がります。\nRemove this product? Later products move up one number."))return;
+      b.products.splice(bSel.prod,1);bSel.prod=0;saveApp();renderBReg();
+    };
+    pd.appendChild(rm);
+  }
+  var row=el("div");row.style.cssText="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px";
+  [[false,"＋ 加工の製品","Add a processed product"],[true,"＋ 小分けの製品","Add a repacked product"]].forEach(function(x){
+    var a=bi(el("button","btn ghost"),x[1],x[2]);a.type="button";
+    a.onclick=function(){
+      b.products.push({small:x[0],retail:"1",own:"1",raws:[],steps:[]});
+      bSel.prod=b.products.length-1;saveApp();renderBReg();
+    };
+    row.appendChild(a);
+  });
+  pd.appendChild(row);
+  renderBYear();
+}
+/* year and representative lot for the processing card */
+function renderBYear(){
+  var sel=document.getElementById("bYear");if(!sel)return;
+  var years=appYears(),cur=sel.value;
+  sel.textContent="";
+  years.forEach(function(y){
+    var o=document.createElement("option");o.value=y;o.textContent=y+"年度（"+(y-1)+"年10月〜"+y+"年9月）";sel.appendChild(o);
+  });
+  if(cur&&years.indexOf(parseInt(cur,10))>-1)sel.value=cur;
+  var year=parseInt(sel.value,10)||years[0];
+  var ls=document.getElementById("bLot"),was=ls.value;
+  ls.textContent="";
+  var gs=store.grades.filter(function(g){return inYear(g.date,year)&&g.result==="pass";})
+    .sort(function(x,y){return x.date<y.date?1:-1;});
+  gs.forEach(function(g){
+    var o=document.createElement("option");o.value=g.id;
+    o.textContent=g.date+"　"+(g.lot||"")+"　"+(g.teas||[]).map(function(k){return teaOf(k).ja;}).join("・");
+    ls.appendChild(o);
+  });
+  if(!gs.length){var n=document.createElement("option");n.value="";n.textContent="（この年度の格付記録なし）";ls.appendChild(n);}
+  else if(was&&gs.some(function(g){return g.id===was;}))ls.value=was;
+  var box=document.getElementById("bCheck");box.textContent="";
+  var iss=bChecks(year);
+  if(iss.length){
+    var w=el("ul","tplrep");
+    iss.forEach(function(x){w.appendChild(el("li","warn",x));});
+    box.appendChild(bi(el("p","lb"),"確認したほうがよい点","Worth checking"));box.appendChild(w);
+  }
+}
+/* where the register and the records disagree */
+function nameKey(s){return normName(s).replace(/﨑/g,"崎");}
+function bChecks(year){
+  var b=appB(),out=[];
+  if(!b.products.length)return out;
+  var facs=b.facilities.map(function(f){return nameKey(f.name);}).filter(Boolean);
+  var seen={};
+  store.procs.forEach(function(p){
+    if(!inYear(p.date,year)||p.organic!=="organic")return;
+    var n=factoryOf(p.factory).ja;
+    if(seen[n])return;seen[n]=true;
+    var k=nameKey(n);
+    if(!facs.some(function(f){return f.indexOf(k)>-1||k.indexOf(f)>-1;}))
+      out.push("記録では「"+n+"」で有機の加工をしていますが、B-C の施設にありません（同じ場所なら名前を揃えてください）");
+  });
+  var teas={},gseen={};
+  b.products.forEach(function(p){if(p.tea)teas[p.tea]=true;});
+  store.grades.forEach(function(g){
+    if(!inYear(g.date,year)||g.result!=="pass")return;
+    (g.teas||[]).forEach(function(k){
+      if(teas[k]||gseen[k])return;gseen[k]=true;
+      out.push("「"+teaOf(k).ja+"」を格付した記録がありますが、その茶の種類を選んだ製品がありません");
+    });
+  });
+  if(b.facilities.some(function(f){return f.use==="併用";})&&
+     !store.cleans.some(function(x){return inYear(x.date,year);}))
+    out.push("併用の施設がありますが、この年度の洗浄記録がありません");
+  var st=b.staff.map(function(s){return nameKey(s.name);});
+  appReg().staff.forEach(function(s){
+    if(st.indexOf(nameKey(s.name))<0)out.push("継続申請の担当者「"+s.name+"」が、加工の担当者にいません");
+  });
+  [false,true].forEach(function(sm){
+    var names={};
+    bGroup(sm).forEach(function(p,i){
+      var tag=(sm?"小分け":"加工")+" №"+(i+1);
+      var k=nameKey(p.name);
+      if(k&&names[k])out.push(tag+" の商品名「"+p.name+"」が №"+names[k]+" と同じです");
+      else if(k)names[k]=i+1;
+      if(!(p.raws||[]).length)out.push(tag+" に原材料がありません");
+      (p.raws||[]).forEach(function(r){if(r.name&&!r.maker&&!/^上の/.test(r.name))out.push(tag+" の原材料「"+r.name+"」の格付表示事業者が空です");});
+    });
+  });
+  if(b.applyKind==="renew"&&!b.cert)out.push("継続なのに認証番号が空です");
+  if(b.applyKind==="renew"&&!b.reviewThis)out.push("今年、規程を見直した日が空です");
+  if(!b.notified)out.push("規程を周知した日が空です");
+  return out;
+}
+function teaGuess(p){
+  var t=normName((p.label||"")+" "+(p.name||"")),hit="",len=0;
+  TEAS.forEach(function(x){
+    if(x.k==="otherTea"||x.k==="aracha")return;
+    var n=normName(x.ja);
+    if(t.indexOf(n)>-1&&n.length>len){hit=x.k;len=n.length;}
+  });
+  return hit;
+}
+/* the graded kg stands in for an empty plan, when the tea points at one processed product */
+function bPlan(p,year){
+  if(p.plan)return p.plan;
+  if(!p.tea||p.small)return "";
+  var n=bGroup(false).filter(function(q){return q.tea===p.tea;}).length;
+  if(n!==1)return "";
+  var kg=0;
+  store.grades.forEach(function(g){
+    if(inYear(g.date,year)&&g.result==="pass"&&(g.teas||[]).indexOf(p.tea)>-1)kg+=g.qty||0;
+  });
+  return kg>0?Math.ceil(kg)+"㎏":"";
+}
+
+function sheetKindB(name){
+  var n=normName(name);
+  if(/^B-リスト/.test(n))return "list";
+  if(/^B-申請/.test(n))return "app";
+  if(/^B-A/.test(n))return "A";
+  if(/^B-C/.test(n))return "C";
+  if(/^B-E/.test(n))return "E";
+  if(/^B-F\(/.test(n))return "";
+  if(/^B-F【小】/.test(n))return "Fs";
+  if(/^B-F/.test(n))return "F";
+  if(/^B-G【小】/.test(n))return "Gs";
+  if(/^B-G/.test(n))return "G";
+  if(/^B-I/.test(n))return "I";
+  if(/^B-J【小】/.test(n))return "Js";
+  if(/^B-J/.test(n))return "J";
+  if(/^B-内部規程/.test(n))return "rule";
+  if(/^B-格付規程/.test(n))return "gradeRule";
+  return "";
+}
+function sheetNo(name){var m=normName(name).match(/(\d+)\D*$/);return m?+m[1]:0;}
+/* tick boxes are text in these forms: set the □/■ in order, keep the spacing */
+function marks(s,ons){var i=0;return String(s||"").replace(/[□■]/g,function(){return ons[i++]?"■":"□";});}
+function tickOf(s,word){return new RegExp("■[\\s　]*"+word).test(String(s||""));}
+function useOf(s){return tickOf(s,"有機専用")?"専用":tickOf(s,"併用")?"併用":"";}
+function dateIn(s){
+  var m=String(s||"").match(/\d+/g);
+  if(!m||m.length<3)return "";
+  return m[0]+"-"+p2(+m[1])+"-"+p2(+m[2]);
+}
+function dateParts(iso){var d=String(iso||"").split("-");return d.length===3?{y:+d[0],m:+d[1],d:+d[2]}:null;}
+function kgIn(s){var m=String(s||"").match(/[\d.]+/);return m?m[0]:"";}
+var EQ_HEAD=[6,36,66];
+var RAW_MARK=["㋑","㋺","㋩","㊁"];
+function stepRows(c){
+  return Object.keys(c).filter(function(ref){var p=splitRef(ref);return p.c==="E"&&p.r>=12&&p.r<=40;})
+    .map(function(ref){return splitRef(ref).r;}).sort(function(a,b){return a-b;});
+}
+function bFill(kind,s,c,year,ctx){
+  var b=appB(),w={},i,r,note="",d;
+  var renew=b.applyKind==="renew",p;
+  if(kind==="list"){
+    w.B5=b.cert||"";
+    if(c.B8)w.B8=marks(c.B8,[!renew]);
+    if(c.B9)w.B9=marks(c.B9,[renew]);
+    if(c.D9)w.D9=marks(c.D9,[renew&&b.changed==="yes"]);
+    if(c.D10)w.D10=marks(c.D10,[renew&&b.changed!=="yes"]);
+    note="区分・認証番号";
+  }else if(kind==="app"){
+    for(i=0;i<4;i++){
+      var st=b.staff[i]||{};r=14+i;
+      w["A"+r]=st.name||"";w["C"+r]=st.mgr||"";w["E"+r]=st.grader||"";
+      if(st.course)w["F"+r]=st.course;
+    }
+    if(c.C19)w.C19=marks(c.C19,[!renew,renew]);
+    if(c.A26)w.A26=marks(c.A26,[renew&&b.changed!=="yes"]);
+    if(c.A27)w.A27=marks(c.A27,[renew&&b.changed==="yes"]);
+    d=dateParts(b.reviewLast);
+    if(d&&c.A23)w.A23=c.A23.replace(/[　 ]*\d*[　 ]*年.*$/,"　　"+d.y+"年　"+d.m+"月　"+d.d+"日");
+    d=dateParts(b.reviewThis);
+    if(d&&c.E23)w.E23=c.E23.replace(/[　 ]*\d*[　 ]*年.*$/,"　　"+d.y+"年　"+d.m+"月　"+d.d+"日");
+    d=dateParts(b.notified);
+    if(d)w.D24="　　"+d.y+"　　年　　"+d.m+"　　月　　"+d.d+"　　日";
+    note="担当者 "+b.staff.length+"人・区分・規程の日付";
+  }else if(kind==="A"){
+    if(c.D4)w.D4=c.D4.replace(/[□■](新規|継続)：(個人|法人)/g,function(m,k,t){
+      return (t==="法人"&&(k==="継続")===renew?"■":"□")+k+"："+t;
+    });
+    var fk=b.facilities.map(function(f){return nameKey(f.name);});
+    ["D15","D20","D25"].forEach(function(ref){
+      if(c[ref]&&fk.indexOf(nameKey(c[ref]))<0)
+        ctx.warn.push("B-A の製造場所「"+c[ref].trim()+"」が B-C の施設名と違います（B-A は書き換えていません）");
+    });
+    note="区分のチェック";
+  }else if(kind==="C"){
+    for(i=0;i<8;i++){
+      var f=b.facilities[i]||{};r=11+i;
+      w["B"+r]=f.name||"";w["F"+r]=f.mgr||"";w["I"+r]=f.work||"";
+      w["M"+r]=f.name?(f.graded||"無"):"有・無";
+      w["N"+r]=f.area||"";
+      w["Q"+r]=marks(c["Q"+r]||"□有機専用　□併用",[f.use==="専用",f.use==="併用"]);
+    }
+    for(i=0;i<3;i++){
+      var ch=b.chems[i]||{};r=24+i;
+      w["B"+r]=ch.fac||"";w["E"+r]=ch.name||"";w["H"+r]=ch.src||"";
+      w["K"+r]=ch.purpose||"";w["N"+r]=ch.how||"";w["R"+r]=ch.stage||"";
+    }
+    if(!b.chems.length)w.B24="なし";
+    note="施設 "+b.facilities.length+"件・薬剤 "+b.chems.length+"件";
+  }else if(kind==="E"){
+    var cnt=0;
+    EQ_HEAD.forEach(function(h,bi2){
+      var f2=b.facilities[bi2]||{},list=b.equip[bi2]||[];
+      w["F"+h]=APP_ORG;
+      w["R"+h]="№"+(bi2+1);w["T"+h]="施設名　"+(f2.name||"");
+      for(i=0;i<24;i++){
+        var e=list[i]||{};r=h+6+i;
+        w["B"+r]=e.name||"";w["F"+r]=e.maker||"";w["R"+r]=e.clean||"";
+        w["L"+r]=marks(c["L"+r]||"□有機専用　□併用",[e.use==="専用",e.use==="併用"]);
+      }
+      cnt+=list.length;
+    });
+    if(b.facilities.length>3)ctx.warn.push("B-E の枠は3施設分です。4つ目からの施設はシートをコピーして書いてください");
+    note="機械・器具 "+cnt+"件";
+  }else if(kind==="F"||kind==="Fs"){
+    var small=kind==="Fs",n=sheetNo(s.name)||1;
+    p=bGroup(small)[n-1];
+    if(!p){ctx.spare.push(s.name);return {w:{},note:"（この番号の製品なし・そのまま）"};}
+    ctx.seen[(small?"F小":"F")+n]=true;
+    var noRef=small?"F10":"F11",nmRef=small?"P10":"P11",raws=p.raws||[];
+    w[noRef]=n;w[nmRef]=p.name||p.label||"";
+    if(small){
+      for(i=0;i<6;i++){
+        var rw=raws[i]||{};r=13+i;
+        w["B"+r]=rw.name||"";w["I"+r]=rw.maker||"";w["N"+r]=rw.cert||"";
+        w["T"+r]=rw.name||c["T"+r]?(rw.kg||"")+"㎏":"";w["W"+r]=rw.ratio?(+rw.ratio)/100:rw.name||c["W"+r]?"％":"";
+      }
+    }else{
+      w.F4=APP_ORG;
+      var sum=0;
+      RAW_MARK.forEach(function(mk,j){
+        var rw2=raws[j]||{},r2=14+j*2;
+        w["B"+r2]=mk+(rw2.name||"");w["I"+r2]=rw2.maker||"";w["N"+r2]=rw2.cert||"";
+        w["T"+r2]=(rw2.kg||"")+"㎏";w["Y"+r2]=rw2.ratio?(+rw2.ratio)/100:"％";
+        sum+=parseFloat(rw2.kg)||0;
+        if(c["W"+r2])w["W"+r2]=marks(c["W"+r2],[!!rw2.name&&rw2.type!=="加工食品"]);
+        if(c["W"+(r2+1)])w["W"+(r2+1)]=marks(c["W"+(r2+1)],[!!rw2.name&&rw2.type==="加工食品"]);
+      });
+      if(raws.length>4)ctx.warn.push("加工 №"+n+" の原材料は B-F の枠(4つ)を超えています");
+      w.T22=(sum||"")+"㎏";w.T35=(sum||"")+"㎏";
+    }
+    note=(p.name||p.label||"")+"：原材料 "+raws.length+"件";
+  }else if(kind==="G"||kind==="Gs"){
+    var sm=kind==="Gs",g=sheetNo(s.name)||(sm?0:1);
+    if(!g)return {w:{},note:"（白紙の様式・そのまま）"};
+    p=bGroup(sm)[g-1];
+    if(!p){ctx.spare.push(s.name);return {w:{},note:"（この番号の製品なし・そのまま）"};}
+    ctx.seen[(sm?"G小":"G")+g]=true;
+    w.E8=g;w.E9=p.name||p.label||"";
+    if(p.siteNo)w.M8="№"+p.siteNo;
+    if(p.site!=null)w.O8="場所名　"+p.site;
+    if(p.gradeAt!=null)w.M9=p.gradeAt;
+    var rows=stepRows(c),steps=p.steps||[],start=rows[0]||(sm?14:13);
+    if(steps.length!==rows.length&&rows.length)
+      ctx.warn.push(s.name+"：工程が "+rows.length+"→"+steps.length+" に変わりました。矢印の図は Excel で合わせてください");
+    rows.forEach(function(rr){w["E"+rr]="";w["I"+rr]="";});
+    steps.forEach(function(st2,j){var rr=start+j*2;w["E"+rr]=st2.ja||"";w["I"+rr]=st2.note||"";});
+    note=(p.name||p.label||"")+"：工程 "+steps.length;
+  }else if(kind==="I"){
+    [["B",10],["G",10],["M",10]].forEach(function(col,ci){
+      for(i=0;i<3;i++)w[col[0]+(10+i)]=(b.ships[ci*3+i]||{}).name||"";
+    });
+    note="出荷先 "+b.ships.length+"件";
+  }else if(kind==="J"||kind==="Js"){
+    var ps=bGroup(kind==="Js"),planned=0;
+    for(i=0;i<23;i++){
+      p=ps[i]||{};r=13+i;
+      if(ps[i])w["A"+r]=i+1;
+      w["B"+r]=p.label||"";w["E"+r]=p.name||"";w["P"+r]=p.weight||"";
+      w["I"+r]=marks(c["I"+r]||"□小売　□業務用",[p.retail,p.biz]);
+      w["M"+r]=marks(c["M"+r]||"□自社　□ＰＢ",[p.own,p.pb]);
+      var pl=ps[i]?bPlan(p,year):"";
+      if(pl&&!p.plan)planned++;
+      w["R"+r]=pl;
+    }
+    if(ps.length>23)ctx.warn.push("B-J の枠は23行です。24個目からは別紙にしてください");
+    note="製品 "+ps.length+"件"+(planned?"（予定数量のうち "+planned+"件は格付記録の量を写しました）":"");
+  }else if(kind==="rule"||kind==="gradeRule"){
+    d=dateParts(b.reviewThis);
+    if(!d)return {w:{},note:"（見直し日が空なのでそのまま）"};
+    if(kind==="rule"){w.R9=d.y+"年　"+d.m+"月"+d.d+"　日";w.I83=d.y;w.M83=d.m;w.P83=d.d;}
+    else{w.P10="　"+d.y+"　年　"+d.m+"　月　"+d.d+"　日";w.G47=d.y+"年";w.K47=d.m;w.M47=d.d;}
+    note="見直し日";
+  }
+  return {w:w,note:note};
+}
+function exportB(year){
+  var rep=document.getElementById("tplBReport");
+  if(!appB().products.length){toast({ja:"先に「申請書から台帳に読み込む」を押してください",en:"Fill the register from the workbook first"});return;}
+  return withTemplate("b",function(bk,t){
+    var lines=[],changed={},ctx={warn:[],spare:[],seen:{}};
+    var list=bk.sheets.filter(function(s){return s.kind;});
+    return Promise.all(list.map(function(s){
+      return unpackText(bk.by[s.path]).then(function(xml){
+        var res=bFill(s.kind,s,readCells(xml,bk.sst),year,ctx);
+        if(Object.keys(res.w).length)changed[s.path]=setCells(xml,res.w);
+        lines.push({name:s.name,note:res.note});
+      });
+    })).then(function(){
+      [[false,"F","G","加工"],[true,"F小","G小","小分け"]].forEach(function(g){
+        bGroup(g[0]).forEach(function(p,i){
+          var n=i+1,miss=[];
+          if(!ctx.seen[g[1]+n])miss.push("B-F");
+          if(!ctx.seen[g[2]+n])miss.push("B-G");
+          if(miss.length)ctx.warn.push(g[3]+" №"+n+" "+(p.name||"")+" の "+miss.join("・")+" シートがありません。シートをコピーして追加してください");
+        });
+      });
+      if(ctx.spare.length)ctx.warn.push("使っていないシートがあります："+ctx.spare.join("、"));
+      bChecks(year).concat(ctx.warn).forEach(function(x){lines.push({note:"⚠ "+x,warn:true});});
+      ["B-A(住所・担当者名簿)・B-B(組織図)・B-D(図面)・B-H(記録一覧)・B-I(包材)・規程の本文は元のままです。名前や施設が変わったら Excel で直してください"]
+        .forEach(function(x){lines.push({note:"※ "+x,warn:true});});
+      lines.sort(function(a,b2){return (a.warn?1:0)-(b2.warn?1:0);});
+      writeBook(bk,t,changed,year);
+      showReport(rep,lines);
+      toast(MSG.exported);
+    });
+  });
+}
+/* read the whole register from the workbook */
+function importB(){
+  return withTemplate("b",function(bk){
+    var got={staff:[],facilities:[],chems:[],ships:[],equip:[[],[],[]],prods:{p:[],s:[]},F:{},G:{},notes:[]};
+    var meta={};
+    return Promise.all(bk.sheets.filter(function(s){return s.kind;}).map(function(s){
+      return unpackText(bk.by[s.path]).then(function(xml){
+        var c=readCells(xml,bk.sst),i,r;
+        var txt=function(ref){return String(c[ref]||"").replace(/^[\s　]+|[\s　]+$/g,"");};
+        if(s.kind==="list"){meta.cert=txt("B5");}
+        else if(s.kind==="app"){
+          for(i=14;i<=17;i++){
+            if(!txt("A"+i))continue;
+            got.staff.push({name:txt("A"+i),mgr:txt("C"+i),grader:txt("E"+i),course:/\d/.test(c["F"+i]||"")?c["F"+i]:""});
+          }
+          meta.applyKind=tickOf(c.C19,"継続")?"renew":"new";
+          meta.changed=tickOf(c.A27,"申請内容に変更がある")?"yes":"no";
+          meta.notified=dateIn(c.D24);
+          meta.reviewLast=dateIn(c.A23);meta.reviewThis=dateIn(c.E23);
+        }else if(s.kind==="C"){
+          for(i=11;i<=18;i++){
+            if(!txt("B"+i))continue;
+            got.facilities.push({name:txt("B"+i),mgr:txt("F"+i),work:txt("I"+i),graded:/^無/.test(txt("M"+i))?"無":"有",
+              area:txt("N"+i),use:useOf(c["Q"+i])});
+          }
+          for(i=24;i<=26;i++){
+            if(!txt("E"+i))continue;
+            got.chems.push({fac:txt("B"+i),name:txt("E"+i),src:txt("H"+i),purpose:txt("K"+i),how:txt("N"+i),stage:txt("R"+i)});
+          }
+        }else if(s.kind==="E"){
+          EQ_HEAD.forEach(function(h,j){
+            for(i=0;i<24;i++){
+              r=h+6+i;
+              if(!txt("B"+r))continue;
+              got.equip[j].push({name:txt("B"+r),maker:txt("F"+r),use:useOf(c["L"+r]),clean:txt("R"+r)});
+            }
+          });
+        }else if(s.kind==="I"){
+          ["B","G","M"].forEach(function(col){
+            for(i=10;i<=12;i++)if(txt(col+i))got.ships.push({name:txt(col+i)});
+          });
+        }else if(s.kind==="J"||s.kind==="Js"){
+          var dst=got.prods[s.kind==="J"?"p":"s"];
+          for(i=13;i<=35;i++){
+            if(!txt("B"+i)&&!txt("E"+i))continue;
+            dst.push({small:s.kind==="Js",label:txt("B"+i),name:txt("E"+i),weight:txt("P"+i),plan:txt("R"+i),
+              retail:tickOf(c["I"+i],"小売")?"1":"",biz:tickOf(c["I"+i],"業務用")?"1":"",
+              own:tickOf(c["M"+i],"自社")?"1":"",pb:tickOf(c["M"+i],"ＰＢ")?"1":"",raws:[],steps:[]});
+          }
+        }else if(s.kind==="F"||s.kind==="Fs"){
+          var sm=s.kind==="Fs",n=sheetNo(s.name)||1,raws=[];
+          if(sm){
+            for(r=13;r<=18;r++){
+              if(!txt("B"+r))continue;
+              raws.push({name:txt("B"+r),maker:txt("I"+r),cert:txt("N"+r),kg:kgIn(c["T"+r]),
+                ratio:typeof c["W"+r]==="string"&&/^[\d.]+$/.test(c["W"+r])?String(+c["W"+r]*100):""});
+            }
+          }else{
+            RAW_MARK.forEach(function(mk,j){
+              var r2=14+j*2,nm=txt("B"+r2).replace(/^[㋑㋺㋩㊁]/,"").trim();
+              if(!nm)return;
+              raws.push({name:nm,maker:txt("I"+r2),cert:txt("N"+r2),kg:kgIn(c["T"+r2]),
+                ratio:/^[\d.]+$/.test(txt("Y"+r2))?String(+txt("Y"+r2)*100):"",
+                type:tickOf(c["W"+(r2+1)],"加工食品")?"加工食品":"農産物"});
+            });
+          }
+          got.F[(sm?"s":"p")+n]={raws:raws,name:txt(sm?"P10":"P11"),sheet:s.name};
+        }else if(s.kind==="G"||s.kind==="Gs"){
+          var sg=s.kind==="Gs",g=sheetNo(s.name)||(sg?0:1);
+          if(!g)return;
+          got.G[(sg?"s":"p")+g]={name:txt("E9"),no:txt("E8"),sheet:s.name,siteNo:txt("M8").replace(/\D/g,""),
+            site:txt("O8").replace(/^場所名[\s　]*/,""),gradeAt:txt("M9"),
+            steps:stepRows(c).map(function(rr){return {ja:txt("E"+rr),note:txt("I"+rr)};})};
+        }
+      });
+    })).then(function(){
+      ["p","s"].forEach(function(k){
+        got.prods[k].forEach(function(p,i){
+          var key=k+(i+1),F=got.F[key],G=got.G[key],want=nameKey(p.name);
+          p.tea=teaGuess(p);
+          if(F){p.raws=F.raws;if(F.name&&nameKey(F.name)!==want&&nameKey(F.name)!==nameKey(p.label))
+            got.notes.push(F.sheet+" の名称「"+F.name+"」は B-J №"+(i+1)+" の「"+p.name+"」と違います。書き出すと B-J に揃います");}
+          if(G){p.steps=G.steps;p.site=G.site;p.siteNo=G.siteNo;p.gradeAt=G.gradeAt;
+            if(G.name&&nameKey(G.name)!==want&&nameKey(G.name)!==nameKey(p.label))
+              got.notes.push(G.sheet+" の名称「"+G.name+"」は B-J №"+(i+1)+" の「"+p.name+"」と違います。書き出すと B-J に揃います");
+            if(G.no&&+G.no!==i+1)got.notes.push(G.sheet+" の番号が "+G.no+" になっています。書き出すと "+(i+1)+" に揃います");}
+        });
+      });
+      var cur=appB(),all=got.prods.p.concat(got.prods.s);
+      var msg="加工の申請書から台帳に読み込みます：担当者 "+got.staff.length+"人・施設 "+got.facilities.length+"件・機械 "+
+        (got.equip[0].length+got.equip[1].length+got.equip[2].length)+"件・製品 "+all.length+"件（加工 "+got.prods.p.length+"・小分け "+got.prods.s.length+"）・出荷先 "+got.ships.length+"件";
+      if(cur.products.length||cur.facilities.length)msg+="\n\nいま台帳にある内容は置き換わります。\nThis replaces what the register holds now.";
+      if(!confirm(msg))return;
+      store.app.b={applyKind:meta.applyKind||"new",cert:meta.cert||"",changed:meta.changed||"no",notified:meta.notified||"",
+        reviewLast:meta.reviewLast||"",reviewThis:meta.reviewThis||"",staff:got.staff,facilities:got.facilities,chems:got.chems,
+        ships:got.ships,equip:got.equip,products:all};
+      saveApp();bSel.prod=0;renderBReg();
+      showReport(document.getElementById("tplBReport"),got.notes.map(function(x){return {note:"⚠ "+x,warn:true};}));
+      toast({ja:"台帳に読み込みました。内容を確かめてください",en:"Register filled from the workbook — please check it"});
+    });
+  });
+}
+/* trace one graded lot back to the fields: the record the B-list calls トレース資料 */
+function traceSheet(g){
+  var c={},r=6;
+  var row=function(a){["A","B","C","D","E","F","G","H"].forEach(function(col,i){if(a[i]!==""&&a[i]!=null)c[col+r]=a[i];});r++;};
+  var names=function(ws){return (ws||[]).map(function(w){return w.split("/")[0].trim();}).join("、");};
+  c.A1="トレース資料（代表の1品目）";
+  c.A2="格付ロット "+(g.lot||"")+" を、格付から原料までさかのぼった記録です。";
+  c.A3="生産行程管理者名";c.B3=APP_ORG;
+  c.A5="工程";c.B5="日付";c.C5="ロット";c.D5="場所";c.E5="原料・内容";c.F5="投入kg";c.G5="製造kg";c.H5="作業者";
+  row(["出荷","","","","Shopify の出荷記録を添付してください","","",""]);
+  row(["格付",g.date,g.lot||"","",(g.sourceLot||"")+"　"+(g.gram||"")+"g×"+(g.packs||0)+"袋　"+(g.mark==="seal"?"シール "+(g.seals||0)+"枚":"印刷済み包材"),"",Math.round((g.qty||0)*100)/100,names(g.workers)]);
+  var seen={},queue=g.procId?[g.procId]:[],used=[],factories={};
+  while(queue.length){
+    var id=queue.shift();
+    if(seen[id])continue;seen[id]=true;
+    var p=procById(id);if(!p)continue;
+    used.push(p);factories[p.factory]=true;
+    (p.parents||[]).forEach(function(x){queue.push(x);});
+  }
+  used.sort(function(a,b){return a.date<b.date?1:-1;});
+  used.forEach(function(p){
+    var src=p.stage==="aracha"?(p.fieldIds||[]).map(function(f){return fieldOf(f).ja;}).join("、")
+      :(p.parents||[]).map(function(x){var q=procById(x);return q?q.lot:"";}).join(" ");
+    if(p.ext)src+=(src?"　":"")+"仕入れ："+(p.extName||"")+" "+(p.extKg||0)+"kg";
+    row([stageOf(p.stage).ja,p.date,p.lot||"",factoryOf(p.factory).ja,src,Math.round((p.inKg||0)*10)/10,Math.round((p.out||0)*10)/10,names(p.workers)]);
+  });
+  used.filter(function(p){return p.stage==="aracha";}).forEach(function(p){
+    var e3=new Date(p.date+"T00:00:00");e3.setDate(e3.getDate()-3);
+    var earliest=e3.getFullYear()+"-"+p2(e3.getMonth()+1)+"-"+p2(e3.getDate());
+    (p.fieldIds||[]).forEach(function(f){
+      row(["生葉の受入",p.date,"",fieldOf(f).ja,"収穫 → "+(p.lot||""),(p.leaf||{})[f]||"","",""]);
+      store.logs.forEach(function(l){
+        var q=(l.qtyByField||{})[f];
+        if(q==null||q===""||(l.fieldIds||[]).indexOf(f)<0)return;
+        if(l.date>p.date||l.date<earliest)return;
+        row(["収穫",l.date,l.lot||"",fieldOf(f).ja,(l.tasks||[]).map(function(k){return taskOf(k).ja;}).join("・"),"",parseFloat(q)||"",names(l.workers)]);
+      });
+    });
+  });
+  var from=used.length?used[used.length-1].date:g.date,to=g.date,first=true;
+  store.cleans.forEach(function(x){
+    if(x.date<from||x.date>to||!factories[x.factory])return;
+    if(first){r++;c["A"+r]="同じ期間・同じ場所の洗浄記録";r++;first=false;}
+    row(["洗浄",x.date,"",factoryOf(x.factory).ja,cleanEquipNames(x).join("、")+"　"+(x.method||""),"","",names(x.workers)]);
+  });
+  return {name:"トレース資料",cells:c,cols:[14,12,16,18,44,10,10,18]};
+}
+function exportBAttach(year){
+  var id=document.getElementById("bLot").value,g=null;
+  store.grades.forEach(function(x){if(x.id===id)g=x;});
+  var sheets=[];
+  if(g)sheets.push(traceSheet(g));
+  sheets.push(procListSheet(year),intakeSheet(year),cleanSheet(year),gradeSheet(year));
+  downloadXlsx("yusando-kako-kiroku-"+year+".xlsx",sheets);
 }
 
 function renderAppCard(){
@@ -5501,7 +6130,7 @@ function showView(v){
   if(v==="grade")renderGrade();
   if(v==="clean")renderClean();
   if(v==="list")renderList();
-  if(v==="master"){renderMaster();renderPlan();renderAppCard();renderRegisters();tplStatus();}
+  if(v==="master"){renderMaster();renderPlan();renderAppCard();renderRegisters();renderBReg();tplStatus();tplStatus("b");}
   if(v==="pdf")renderPdfView();
   updateEditNote();
   window.scrollTo(0,0);
@@ -5685,6 +6314,12 @@ document.getElementById("tplExport").onclick=function(){
   exportFromTemplate(y);
 };
 document.getElementById("tplImport").onclick=function(){importRegisters();};
+document.getElementById("tplBFile").onchange=function(){loadTemplate(this.files&&this.files[0],"b");this.value="";};
+function bYearNow(){return parseInt(document.getElementById("bYear").value,10)||appYears()[0];}
+document.getElementById("bYear").onchange=function(){renderBYear();};
+document.getElementById("tplBExport").onclick=function(){exportB(bYearNow());};
+document.getElementById("tplBImport").onclick=function(){importB();};
+document.getElementById("tplBAttach").onclick=function(){exportBAttach(bYearNow());};
 document.getElementById("pdfMonth").onclick=function(){pdfMonthRecords(mvY,mvM);};
 document.getElementById("pdfCal").onclick=function(){pdfMonthCalendar(mvY,mvM);};
 
