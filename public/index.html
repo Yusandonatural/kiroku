@@ -311,6 +311,8 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-
 .reg.nb{grid-template-columns:22px repeat(3,minmax(0,1fr));align-items:end}
 .reg.nb .nbl{font-weight:700;padding-bottom:10px}
 @media (max-width:520px){.reg.nb{grid-template-columns:22px minmax(0,1fr)}.reg.nb .regf{grid-column:2}}
+.sidetabs{display:flex;gap:8px;margin:0 0 14px;column-span:all}
+.sidetabs .chip{flex:1;text-align:center}
 .regfold{margin:10px 0}
 .regfold>summary{cursor:pointer;padding:6px 0;margin:0}
 .tplbox{margin-top:16px;padding-top:12px;border-top:1px dashed var(--line)}
@@ -1060,9 +1062,13 @@ p.secsub .en{display:block;color:var(--faint)}
 
   <!-- ============ REGISTERS ============ -->
   <section id="view-master" class="hidden">
-    <p class="note">圃場と機械は、2024〜2025年の有機JAS継続申請書(A-C・A-G)から取り込んだ実データです。所在地・面積・有機管理開始日は原本と照合してからご利用ください。<span class="en">Fields and machines were imported from the 2024–2025 organic JAS renewal applications (forms A-C and A-G). Check the address, area and organic-management start date against the originals before relying on them.</span></p>
+    <div class="sidetabs" id="masterSide" role="group" aria-label="農産と加工">
+      <button type="button" class="chip" data-side-tab="farm"><span class="ja">農産</span><span class="en">Farming</span></button>
+      <button type="button" class="chip" data-side-tab="proc"><span class="ja">加工</span><span class="en">Processing</span></button>
+    </div>
+    <p class="note" data-side="farm">圃場と機械は、2024〜2025年の有機JAS継続申請書(A-C・A-G)から取り込んだ実データです。所在地・面積・有機管理開始日は原本と照合してからご利用ください。<span class="en">Fields and machines were imported from the 2024–2025 organic JAS renewal applications (forms A-C and A-G). Check the address, area and organic-management start date against the originals before relying on them.</span></p>
 
-    <div class="card">
+    <div class="card" data-side="farm">
       <h2 class="sec"><span class="ja">圃場台帳</span><span class="en">Field register</span></h2>
       <p class="secsub">圃場番号は自動で振られ、収穫ロット番号に使われます。住所を入れると地図で開けます。<span class="en">Field codes are assigned automatically and used in harvest lot numbers. Add an address to open the field on a map.</span></p>
       <div id="fieldList"></div>
@@ -1081,7 +1087,7 @@ p.secsub .en{display:block;color:var(--faint)}
       <p class="hint">未申請の有機圃場も登録できます。作業記録は同じようにつけられますが、収穫ロットは<code>U-</code>で始まり、格付・有機表示の対象外として集計されます。<span class="en">Organic fields not yet applied for can be registered too. Work is recorded the same way, but their harvest lots start with <code>U-</code> and are counted separately, outside grading and organic labelling.</span></p>
     </div>
 
-    <div class="card">
+    <div class="card" data-side="farm">
       <h2 class="sec"><span class="ja">機械台帳</span><span class="en">Machine register</span></h2>
       <p class="secsub">慣行栽培と共用する機械は洗浄記録が必要になります。<span class="en">Machines shared with non-organic work require a cleaning record.</span></p>
       <div id="machineList"></div>
@@ -1092,23 +1098,68 @@ p.secsub .en{display:block;color:var(--faint)}
       </div>
     </div>
 
-    <div class="card">
+    <div class="card" data-side="farm">
+      <h2 class="sec"><span class="ja">栽培の予定(A-J 計画書)</span><span class="en">Cultivation plan (A-J)</span></h2>
+      <p class="secsub">圃場ごと・月ごとの作業の予定です。ここに入れた予定が、継続申請書A-Jの「2.栽培計画書」に入ります。入力はその場で保存され、ほかの端末にも同期されます。<span class="en">The planned work for each field and month. The plan entered here goes into "2. Cultivation plan" on the A-J sheet. Changes save as you type and sync to the other devices.</span></p>
+      <div class="row">
+        <div class="field">
+          <label class="lb" for="planYear"><span class="ja">予定の年度</span><span class="en">Plan year</span></label>
+          <select id="planYear"></select>
+        </div>
+        <div class="field">
+          <label class="lb" for="planField"><span class="ja">圃場</span><span class="en">Field</span></label>
+          <select id="planField"></select>
+        </div>
+      </div>
+      <div id="planRows"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+        <button class="btn primary" type="button" id="planCopyAll"><span class="ja">前年度の予定を全圃場コピー</span><span class="en">Copy last year's plan, all fields</span></button>
+        <button class="btn" type="button" id="planCopyOne"><span class="ja">この圃場だけコピー</span><span class="en">Copy for this field only</span></button>
+        <button class="btn ghost" type="button" id="planFromActual"><span class="ja">前年度の実績から作る(全圃場)</span><span class="en">Build from last year's actual work (all fields)</span></button>
+      </div>
+      <p class="hint" id="planHint"></p>
+    </div>
+
+    <div class="card" data-side="farm">
+      <h2 class="sec"><span class="ja">申請書の台帳</span><span class="en">Application registers</span></h2>
+      <p class="secsub">継続申請書の A-申請・A-A・A-B(組織図・委託先)・A-F(施設・倉庫)・A-E(圃場の周り)に入る内容です。下の「申請書から台帳に読み込む」で、今の申請書から最初の内容を取り込めます。<span class="en">What goes into the application's staff, organisation, contractor, facility and field-surroundings sheets. "Fill the registers from the workbook" below takes the current contents from the last application.</span></p>
+      <div id="regBox"></div>
+    </div>
+
+    <div class="card" data-side="farm">
+      <h2 class="sec"><span class="ja">継続申請書の下書き</span><span class="en">Renewal application draft</span></h2>
+      <p class="secsub">記録から <strong>A-J(申請圃場の栽培履歴と計画書)</strong> を圃場ごとに作り、A-G(機械)・A-C(圃場一覧)とあわせて Excel で書き出します。申請年度は10月〜翌9月です。書式のセル位置は申請書と同じにしてあるので、そのまま提出するか、HOASの様式に貼り付けて使えます。<span class="en">Builds the A-J cultivation history and plan for every applied field, plus the machine and field lists, as one Excel file. The application year runs October to September, and the cells sit where they sit in the official sheet, so the file can be submitted as it is or pasted into the HOAS template.</span></p>
+      <div class="field">
+        <label class="lb" for="appYear"><span class="ja">申請年度</span><span class="en">Application year</span></label>
+        <select id="appYear"></select>
+      </div>
+      <div id="appCheck"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+        <button class="btn primary" id="exportApp"><span class="ja">継続申請書(下書き)を書き出す</span><span class="en">Export the application draft</span></button>
+        <button class="btn" id="pdfApp"><span class="ja">PDFで書き出す</span><span class="en">Export as PDF</span></button>
+      </div>
+      <p class="hint">押印・講習会番号・出荷先(A-I)・種苗(A-K/L/M)など、記録から作れない欄は空のままです。書き出したあとに確認して埋めてください。<span class="en">Seals, training certificate numbers, buyers (A-I) and seed and seedling sheets (A-K/L/M) cannot come from the records and are left blank — fill them in after exporting.</span></p>
+      <div class="tplbox">
+        <h3 class="regh"><span class="ja">提出した申請書を土台にして書き出す</span><span class="en">Fill in the submitted workbook</span></h3>
+        <p class="secsub">前回提出した申請書(Excel)を読み込むと、地図・図面・押印欄などはそのまま残し、記録と台帳からわかる欄(A-J の作業・収穫・計画、A-G の機械、A-F の施設、A-E の周辺、A-B の組織図・委託先、A-申請の担当者、A-A の面積)だけを書き換えた Excel を作ります。申請書はこの端末にだけ保存されます。<span class="en">Load the last submitted workbook: maps, drawings and seal boxes stay as they are, and only the cells the records and registers can answer are rewritten (A-J work, harvest and plan; machines; facilities; field surroundings; organisation and contractors; staff; area). The workbook is kept on this device only.</span></p>
+        <p class="hint" id="tplStatus"></p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <label class="btn" for="tplFile"><span class="ja">申請書(Excel)を読み込む</span><span class="en">Load the workbook</span></label>
+          <input type="file" id="tplFile" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" class="hidden">
+          <button class="btn primary" type="button" id="tplExport"><span class="ja">記録で埋めて書き出す</span><span class="en">Fill and export</span></button>
+          <button class="btn ghost" type="button" id="tplImport"><span class="ja">申請書から台帳に読み込む</span><span class="en">Fill the registers from the workbook</span></button>
+        </div>
+        <div id="tplReport"></div>
+      </div>
+    </div>
+
+    <div class="card" data-side="proc">
       <h2 class="sec"><span class="ja">製茶工場台帳</span><span class="en">Factory register</span></h2>
       <p class="secsub">どの認証の下で加工するかで、必要な書類が変わります。先方が認証を持つ工場は、認証番号と有効期限をここで管理します。<span class="en">What paperwork a batch needs depends on whose certification it is processed under. For a factory holding its own certification, keep the number and expiry here.</span></p>
       <div id="factoryList"></div>
     </div>
 
-    <div class="card">
-      <h2 class="sec"><span class="ja">作業者</span><span class="en">Workers</span></h2>
-      <p class="secsub">記録に残る氏名です。「日本語 / English」の形で入れると両方表示されます。作業者は記録画面で複数選べます。<span class="en">The names that appear on each record. Enter them as "日本語 / English" to show both. Several people can be selected on one record.</span></p>
-      <div id="workerList"></div>
-      <div class="addrow">
-        <input type="text" id="newWorker" placeholder="氏名 / Name">
-        <button class="btn" id="addWorker"><span class="ja">追加</span><span class="en">Add</span></button>
-      </div>
-    </div>
-
-    <div class="card">
+    <div class="card" data-side="proc">
       <h2 class="sec"><span class="ja">JASマークシール受払台帳</span><span class="en">JAS seal ledger</span></h2>
       <p class="secsub">入荷・使用・廃棄と残数を管理します。使用枚数は格付記録から自動で入ります。年次調査でいちばん数の合わないところです。<span class="en">Receipts, use, spoilage and the balance. Seals used come straight from the grading records. This is where counts most often fail to reconcile at inspection.</span></p>
       <div class="sealsum">
@@ -1127,6 +1178,41 @@ p.secsub .en{display:block;color:var(--faint)}
         <input type="number" id="newSealQty" placeholder="枚数 / Count" min="0" step="1" style="flex:1 1 90px">
         <input type="text" id="newSealNote" placeholder="入手先・理由 / Source or reason" style="flex:1 1 150px">
         <button class="btn" id="addSeal" style="flex:0 0 auto"><span class="ja">追加</span><span class="en">Add</span></button>
+      </div>
+    </div>
+
+    <div class="card" data-side="proc">
+      <h2 class="sec"><span class="ja">加工の申請書</span><span class="en">Processing application</span></h2>
+      <p class="secsub">有機加工食品の申請書(B様式)を、提出した Excel を土台に作ります。製品・施設・機械・配合・工程フローを下の台帳で管理し、B-F と B-G の番号と名称は B-J に揃えて書き出します。図面・組織図・矢印の図はそのまま残ります。申請書はこの端末にだけ保存されます。<span class="en">Builds the organic processed food application (B forms) on top of the submitted Excel workbook. Products, facilities, machines, recipes and flows live in the register below, and numbers and names on B-F and B-G always follow B-J. Floor plans, the org chart and the flow arrows stay as they are. The workbook is kept on this device only.</span></p>
+      <p class="hint" id="tplBStatus"></p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <label class="btn" for="tplBFile"><span class="ja">申請書(Excel)を読み込む</span><span class="en">Load the workbook</span></label>
+        <input type="file" id="tplBFile" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" class="hidden">
+        <button class="btn ghost" type="button" id="tplBImport"><span class="ja">申請書から台帳に読み込む</span><span class="en">Fill the register from the workbook</span></button>
+      </div>
+      <div id="bRegBox"></div>
+      <div class="tplbox">
+        <div class="field">
+          <label class="lb" for="bYear"><span class="ja">記録を見る年度</span><span class="en">Records year</span></label>
+          <select id="bYear"></select>
+        </div>
+        <div id="bCheck"></div>
+        <button class="btn primary" type="button" id="tplBExport"><span class="ja">加工の申請書を書き出す</span><span class="en">Export the application</span></button>
+        <div class="field" style="margin-top:12px">
+          <label class="lb" for="bLot"><span class="ja">トレース資料にする格付ロット</span><span class="en">Graded lot for the trace record</span></label>
+          <select id="bLot"></select>
+        </div>
+        <button class="btn" type="button" id="tplBAttach"><span class="ja">トレース資料と記録を書き出す</span><span class="en">Export the trace and records</span></button>
+        <div id="tplBReport"></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2 class="sec"><span class="ja">作業者</span><span class="en">Workers</span></h2>
+      <p class="secsub">記録に残る氏名です。「日本語 / English」の形で入れると両方表示されます。作業者は記録画面で複数選べます。<span class="en">The names that appear on each record. Enter them as "日本語 / English" to show both. Several people can be selected on one record.</span></p>
+      <div id="workerList"></div>
+      <div class="addrow">
+        <input type="text" id="newWorker" placeholder="氏名 / Name">
+        <button class="btn" id="addWorker"><span class="ja">追加</span><span class="en">Add</span></button>
       </div>
     </div>
 
@@ -1169,86 +1255,6 @@ p.secsub .en{display:block;color:var(--faint)}
       </div>
     </div>
 
-    <div class="card">
-      <h2 class="sec"><span class="ja">栽培の予定(A-J 計画書)</span><span class="en">Cultivation plan (A-J)</span></h2>
-      <p class="secsub">圃場ごと・月ごとの作業の予定です。ここに入れた予定が、継続申請書A-Jの「2.栽培計画書」に入ります。入力はその場で保存され、ほかの端末にも同期されます。<span class="en">The planned work for each field and month. The plan entered here goes into "2. Cultivation plan" on the A-J sheet. Changes save as you type and sync to the other devices.</span></p>
-      <div class="row">
-        <div class="field">
-          <label class="lb" for="planYear"><span class="ja">予定の年度</span><span class="en">Plan year</span></label>
-          <select id="planYear"></select>
-        </div>
-        <div class="field">
-          <label class="lb" for="planField"><span class="ja">圃場</span><span class="en">Field</span></label>
-          <select id="planField"></select>
-        </div>
-      </div>
-      <div id="planRows"></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
-        <button class="btn primary" type="button" id="planCopyAll"><span class="ja">前年度の予定を全圃場コピー</span><span class="en">Copy last year's plan, all fields</span></button>
-        <button class="btn" type="button" id="planCopyOne"><span class="ja">この圃場だけコピー</span><span class="en">Copy for this field only</span></button>
-        <button class="btn ghost" type="button" id="planFromActual"><span class="ja">前年度の実績から作る(全圃場)</span><span class="en">Build from last year's actual work (all fields)</span></button>
-      </div>
-      <p class="hint" id="planHint"></p>
-    </div>
-
-    <div class="card">
-      <h2 class="sec"><span class="ja">申請書の台帳</span><span class="en">Application registers</span></h2>
-      <p class="secsub">継続申請書の A-申請・A-A・A-B(組織図・委託先)・A-F(施設・倉庫)・A-E(圃場の周り)に入る内容です。下の「申請書から台帳に読み込む」で、今の申請書から最初の内容を取り込めます。<span class="en">What goes into the application's staff, organisation, contractor, facility and field-surroundings sheets. "Fill the registers from the workbook" below takes the current contents from the last application.</span></p>
-      <div id="regBox"></div>
-    </div>
-
-    <div class="card">
-      <h2 class="sec"><span class="ja">継続申請書の下書き</span><span class="en">Renewal application draft</span></h2>
-      <p class="secsub">記録から <strong>A-J(申請圃場の栽培履歴と計画書)</strong> を圃場ごとに作り、A-G(機械)・A-C(圃場一覧)とあわせて Excel で書き出します。申請年度は10月〜翌9月です。書式のセル位置は申請書と同じにしてあるので、そのまま提出するか、HOASの様式に貼り付けて使えます。<span class="en">Builds the A-J cultivation history and plan for every applied field, plus the machine and field lists, as one Excel file. The application year runs October to September, and the cells sit where they sit in the official sheet, so the file can be submitted as it is or pasted into the HOAS template.</span></p>
-      <div class="field">
-        <label class="lb" for="appYear"><span class="ja">申請年度</span><span class="en">Application year</span></label>
-        <select id="appYear"></select>
-      </div>
-      <div id="appCheck"></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
-        <button class="btn primary" id="exportApp"><span class="ja">継続申請書(下書き)を書き出す</span><span class="en">Export the application draft</span></button>
-        <button class="btn" id="pdfApp"><span class="ja">PDFで書き出す</span><span class="en">Export as PDF</span></button>
-      </div>
-      <p class="hint">押印・講習会番号・出荷先(A-I)・種苗(A-K/L/M)など、記録から作れない欄は空のままです。書き出したあとに確認して埋めてください。<span class="en">Seals, training certificate numbers, buyers (A-I) and seed and seedling sheets (A-K/L/M) cannot come from the records and are left blank — fill them in after exporting.</span></p>
-      <div class="tplbox">
-        <h3 class="regh"><span class="ja">提出した申請書を土台にして書き出す</span><span class="en">Fill in the submitted workbook</span></h3>
-        <p class="secsub">前回提出した申請書(Excel)を読み込むと、地図・図面・押印欄などはそのまま残し、記録と台帳からわかる欄(A-J の作業・収穫・計画、A-G の機械、A-F の施設、A-E の周辺、A-B の組織図・委託先、A-申請の担当者、A-A の面積)だけを書き換えた Excel を作ります。申請書はこの端末にだけ保存されます。<span class="en">Load the last submitted workbook: maps, drawings and seal boxes stay as they are, and only the cells the records and registers can answer are rewritten (A-J work, harvest and plan; machines; facilities; field surroundings; organisation and contractors; staff; area). The workbook is kept on this device only.</span></p>
-        <p class="hint" id="tplStatus"></p>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <label class="btn" for="tplFile"><span class="ja">申請書(Excel)を読み込む</span><span class="en">Load the workbook</span></label>
-          <input type="file" id="tplFile" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" class="hidden">
-          <button class="btn primary" type="button" id="tplExport"><span class="ja">記録で埋めて書き出す</span><span class="en">Fill and export</span></button>
-          <button class="btn ghost" type="button" id="tplImport"><span class="ja">申請書から台帳に読み込む</span><span class="en">Fill the registers from the workbook</span></button>
-        </div>
-        <div id="tplReport"></div>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2 class="sec"><span class="ja">加工の申請書</span><span class="en">Processing application</span></h2>
-      <p class="secsub">有機加工食品の申請書(B様式)を、提出した Excel を土台に作ります。製品・施設・機械・配合・工程フローを下の台帳で管理し、B-F と B-G の番号と名称は B-J に揃えて書き出します。図面・組織図・矢印の図はそのまま残ります。申請書はこの端末にだけ保存されます。<span class="en">Builds the organic processed food application (B forms) on top of the submitted Excel workbook. Products, facilities, machines, recipes and flows live in the register below, and numbers and names on B-F and B-G always follow B-J. Floor plans, the org chart and the flow arrows stay as they are. The workbook is kept on this device only.</span></p>
-      <p class="hint" id="tplBStatus"></p>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <label class="btn" for="tplBFile"><span class="ja">申請書(Excel)を読み込む</span><span class="en">Load the workbook</span></label>
-        <input type="file" id="tplBFile" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" class="hidden">
-        <button class="btn ghost" type="button" id="tplBImport"><span class="ja">申請書から台帳に読み込む</span><span class="en">Fill the register from the workbook</span></button>
-      </div>
-      <div id="bRegBox"></div>
-      <div class="tplbox">
-        <div class="field">
-          <label class="lb" for="bYear"><span class="ja">記録を見る年度</span><span class="en">Records year</span></label>
-          <select id="bYear"></select>
-        </div>
-        <div id="bCheck"></div>
-        <button class="btn primary" type="button" id="tplBExport"><span class="ja">加工の申請書を書き出す</span><span class="en">Export the application</span></button>
-        <div class="field" style="margin-top:12px">
-          <label class="lb" for="bLot"><span class="ja">トレース資料にする格付ロット</span><span class="en">Graded lot for the trace record</span></label>
-          <select id="bLot"></select>
-        </div>
-        <button class="btn" type="button" id="tplBAttach"><span class="ja">トレース資料と記録を書き出す</span><span class="en">Export the trace and records</span></button>
-        <div id="tplBReport"></div>
-      </div>
-    </div>
   </section>
 </main>
 
@@ -6135,6 +6141,24 @@ function showView(v){
   updateEditNote();
   window.scrollTo(0,0);
 }
+
+/* the 台帳 tab is split into farming and processing; shared cards show under both */
+var masterSide="farm";
+try{if(localStorage.getItem("kiroku_master_side")==="proc")masterSide="proc";}catch(e){}
+function setMasterSide(k){
+  masterSide=k;
+  try{localStorage.setItem("kiroku_master_side",k);}catch(e){}
+  Array.prototype.forEach.call(document.querySelectorAll("#view-master [data-side]"),function(c){
+    c.classList.toggle("hidden",c.dataset.side!==k);
+  });
+  Array.prototype.forEach.call(document.querySelectorAll("[data-side-tab]"),function(b){
+    b.setAttribute("aria-pressed",b.dataset.sideTab===k?"true":"false");
+  });
+}
+Array.prototype.forEach.call(document.querySelectorAll("[data-side-tab]"),function(b){
+  b.onclick=function(){setMasterSide(b.dataset.sideTab);window.scrollTo(0,0);};
+});
+setMasterSide(masterSide);
 
 Array.prototype.forEach.call(document.querySelectorAll(".tab"),function(t){
   t.onclick=function(){showView(t.dataset.view);};
